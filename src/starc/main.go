@@ -1,4 +1,4 @@
-package main;
+package main
 
 import (
     "fmt"
@@ -23,15 +23,18 @@ func main() {
     hadImplementsError = false
     if len(os.Args) > 4 {
         PrintError(1)
-    }else if len(os.Args) == 4 {
-        fmt.Println("Exact number of args")
+    }else if len(os.Args) == 2{
+        runPrompt()
+    }else if len(os.Args) >= 3 {
+        if len(os.Args) < 4 {
+            runCommand(filePath)
+            PrintError(0)
+        }
         filePath = os.Args[len(os.Args)-1]
         if !strings.HasSuffix(filePath, ".sc") {
             PrintError(2)
         }
         runCommand(filePath)
-    }else if len(os.Args) >= 2 {
-        runPrompt()
     }
     os.Exit(0);
 }
@@ -41,16 +44,15 @@ func getError(id uint8) (uint8, error) {
     var where string = filePath;
     
     message += fmt.Sprintf("%s <id: %d>': ", "Unexpected 'Error", id);
-    var char string = "character";
+    var char string = "characters";
     
-    if len(input) >= 1 {
-        char = "characters"
+    if id == 0 {
+        message = ""
     }
-    
     switch id {
-        case 0: message += "Process Runned Successfully"; hadRuntimeError = true; break;
+        case 0: message += "Process Runned Successfully"; hadImplementsError = true; break;
         case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break;
-        case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format..."; hadImplementsError = true; break;
+        case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format ..."; hadImplementsError = true; break;
         case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break;
         
     }
@@ -116,19 +118,14 @@ func run(source string) {
     }
 }
 
-func ErrorReport(id uint8) {
-    PrintError(id);
-    hadCompileError = true;
-}
-
 func runCommand(arg string) {
     command := os.Args[2]
     switch command {
         case "ignite": compile(arg); break;
-        case "version": fmt.Println(fmt.Sprintf("%s %d", "Star-C version", VERSION))
+        case "launch": runFile(arg); break;
+        case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:
         	fmt.Println(command)
         	PrintError(1);
     }
-    fmt.Println(os.Args)
 }
