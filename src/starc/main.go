@@ -102,6 +102,9 @@ func runPrompt() {
     }
 }
 
+func compile(source string) {
+    fmt.Println("No compiler implemented for now, use run mode");
+}
 func run(source string) {
     var scanner Scanner;
     scanner = Scanner{source: source, line: 1}
@@ -121,7 +124,7 @@ func ErrorReport(id uint8) {
 func runCommand(arg string) {
     command := os.Args[2]
     switch command {
-        case "ignite": runFile(arg); break;
+        case "ignite": compile(arg); break;
         case "version": fmt.Println(fmt.Sprintf("%s %d", "Star-C version", VERSION))
         default:
         	fmt.Println(command)
