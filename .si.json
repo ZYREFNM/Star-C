@@ -1,0 +1,27 @@
+{
+  "plugin": "org.smartide.plugin.go",
+  "run": "rm -rf bin && mkdir -p bin && go build -o bin/starc ./src/... && rm -f $PREFIX/bin/starc && cp bin/starc $PREFIX/bin/starc &&./bin/starc",
+  "gui": false,
+  "intelligence": {
+    ".json": {
+      "enabled": true,
+      "run": "vscode-json-language-server --stdio"
+    },
+    ".go": {
+      "enabled": true,
+      "run": "gopls"
+    },
+    ".mod": {
+      "enabled": true,
+      "run": "gopls"
+    },
+    ".sc": {
+      "enabled": true,
+      "run": "metals"
+    },
+    ".md": {
+      "enabled": true,
+      "run": "marksman server"
+    }
+  }
+}
