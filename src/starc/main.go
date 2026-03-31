@@ -54,6 +54,8 @@ func getError(id uint8) (uint8, error) {
         case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break;
         case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format ..."; hadImplementsError = true; break;
         case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break;
+        case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break;
+        case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break;
         
     }
     message += ";\n"
@@ -69,18 +71,16 @@ func getError(id uint8) (uint8, error) {
 }
 
 func PrintError(err uint8) {
-    _, errMsg := getError(err);
-    fmt.Printf("%s", errMsg);
-    fmt.Println();
-    os.Exit(int(err))
+    id, errMsg := getError(err);
+    fmt.Println(errMsg)
+    os.Exit(int(id))
 }
 
-func runFile(path string) {
+func runFile(path string) string {
     var bytes, err = os.ReadFile(path);
     if err != nil {
-        PrintError(2)
+        PrintError(4)
     }
-    run(string(bytes));
     
     if hadCompileError {
         os.Exit(65);
@@ -88,6 +88,7 @@ func runFile(path string) {
     if hadRuntimeError {
         os.Exit(70);
     }
+    return string(bytes)
 }
 
 func runPrompt() {
@@ -105,7 +106,11 @@ func runPrompt() {
 }
 
 func compile(source string) {
-    fmt.Println("No compiler implemented for now, use run mode");
+    var bytes, err = os.ReadFile(source);
+    if err != nil {
+        PrintError(4)
+    }
+    fmt.Println("No compiler implemented for now, use run mode", bytes);
 }
 func run(source string) {
     var scanner Scanner;
@@ -113,16 +118,21 @@ func run(source string) {
     var tokens []Token = scanner.ScanTokens();
     lineTracker = scanner.line
     
-    for _, token := range tokens {
-        fmt.Println(token);
+    var parser Parser = Parser{tokens: tokens}
+    var expression Expr = parser.Parse()
+    
+    if hadRuntimeError {
+        PrintError(5)
     }
+    ast := &AstPrinter{}
+    fmt.Println(ast.Print(expression))
 }
 
 func runCommand(arg string) {
     command := os.Args[2]
     switch command {
-        case "ignite": compile(arg); break;
-        case "launch": runFile(arg); break;
+        case "ignite": compile(runFile(filePath)); break;
+        case "launch": run(runFile(filePath)); break;
         case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:
         	fmt.Println(command)

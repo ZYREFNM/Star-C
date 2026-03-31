@@ -1,4 +1,5 @@
-package "main";
-var string hello = "Hello World";
-
-return 69;
+//package main
+/* MultiLine
+Comment*/
+1*2
+1/2

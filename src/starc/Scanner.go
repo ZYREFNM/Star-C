@@ -101,12 +101,21 @@ func (s *Scanner) scanToken() {
         case '/':
         	if s.match('/') {
             	for s.peek() != '\n' && !s.isAtEnd() {
-                    s.advance();
+                    s.advance()
                 }
+            } else if s.match('*') {
+                for !s.isAtEnd() {
+                    if s.peek() == '*' && s.peekNext() == '/' {
+                        s.advance()
+                        s.advance()
+                        break
+                    }
+                    s.advance()
+                }    
             } else {
-                s.addToken(SLASH);
+                s.addToken(SLASH)
             }
-        break;
+        break
         case ' ':
         case '\r':
         case '\t':
