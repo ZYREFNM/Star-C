@@ -23,7 +23,7 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() Token {
     if !p.isAtEnd() {p.current++}
-    return p.peek(-1)
+    return p.tokens[p.current - 1]
 }
 
 // Next following are the nodes’ recursion
@@ -47,8 +47,11 @@ func (p *Parser) primary() Node {
     }
     if token.tokenType == LEFT_PAREN {
         p.advance()
+        expr := p.expression()
         if token.tokenType != RIGHT_PAREN && p.isAtEnd() {
             PrintError(5)
+        } else {
+            return &NodeGroup{Expression: expr}
         }
     }
     PrintError(5)
@@ -56,11 +59,12 @@ func (p *Parser) primary() Node {
 }
 
 func (p *Parser) factor() Node {
-    
-    token := p.peek(0)
     expr := p.primary()
+    token := p.peek(0)
+    
     if !p.isAtEnd() {
         if token.tokenType == STAR || token.tokenType == SLASH {
+            p.advance()
             operator := token.Lexeme
             right := p.primary()
             expr = &NodeBinary{Left: expr, Operator: operator, Right: right}
@@ -75,6 +79,7 @@ func (p *Parser) binary() Node {
     
     if !p.isAtEnd() {
         if token.tokenType == PLUS || token.tokenType == MINUS {
+            p.advance()
             operator := token.Lexeme
             right := p.factor()
             expr = &NodeBinary{Left: expr, Operator: operator, Right: right}

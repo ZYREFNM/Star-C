@@ -17,3 +17,8 @@ func (t *Transpiler) NewCFile() *os.File  {
     os.WriteFile(fmt.Sprintf("%s.c", t.fileName), stdioHeader, 0644)
     return newFile
 }
+
+func (t *Transpiler) WriteInFile(code string) {
+    codeBytes := []byte(code)
+    os.WriteFile(fmt.Sprintf("%s.c", t.fileName), codeBytes, 0644)
+}

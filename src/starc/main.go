@@ -101,6 +101,7 @@ func runPrompt() {
         var line string = reader.Text();
         input = line;
         run(line);
+        fmt.Println()
         hadCompileError = false;
     }
 }
@@ -118,10 +119,9 @@ func run(source string) {
     var tokens []Token = scanner.ScanTokens();
     var parser Parser = Parser{tokens: tokens, current: 0}
     lineTracker = scanner.line
+    tree := parser.expression()
     
-    for range tokens {
-        parser.Parse()
-    }
+    printNode(tree, 0)
 }
 
 func runCommand(arg string) {
@@ -133,5 +133,24 @@ func runCommand(arg string) {
         default:
         	fmt.Println(command)
         	PrintError(1);
+    }
+}
+
+func printNode(node Node, indent int) {
+    for i := 0; i < indent; i++ {
+        fmt.Print("	")
+    }
+    switch n := node.(type) {
+        case *NodeBinary:
+        	fmt.Print(n.Operator)
+        	printNode(n.Left, indent + 1)
+        	printNode(n.Right, indent + 1)
+        case *NodeLiteral:
+        	fmt.Print(n.Value)
+        case *NodeVariable:
+        	fmt.Print(n.Name)
+        case *NodeGroup:
+        	fmt.Print("()")
+            printNode(n.Expression, indent + 1)
     }
 }
