@@ -116,16 +116,12 @@ func run(source string) {
     var scanner Scanner;
     scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens();
+    var parser Parser = Parser{tokens: tokens, current: 0}
     lineTracker = scanner.line
     
-    var parser Parser = Parser{tokens: tokens}
-    var expression Expr = parser.Parse()
-    
-    if hadRuntimeError {
-        PrintError(5)
+    for range tokens {
+        parser.Parse()
     }
-    ast := &AstPrinter{}
-    fmt.Println(ast.Print(expression))
 }
 
 func runCommand(arg string) {

@@ -14,6 +14,10 @@ type Token struct {
     Line int;
 }
 
+func (t TokenType) isDigit() bool {
+    return t >= INT && t <= UFLOAT64
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota
@@ -54,7 +58,6 @@ const (
     FLOAT16
     FLOAT32
     FLOAT64
-    STRING
     UINT
     UINT8
     UINT16
@@ -65,6 +68,7 @@ const (
     UFLOAT16
     UFLOAT32
     UFLOAT64
+    STRING
     
     //Keywords
     AND
