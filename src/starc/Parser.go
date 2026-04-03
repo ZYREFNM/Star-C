@@ -2,6 +2,7 @@ package main
 
 import (
     //"fmt"
+    //"strconv"
 )
 
 type Parser struct {
@@ -28,11 +29,6 @@ func (p *Parser) advance() Token {
 
 // Next following are the nodes’ recursion
 
-func (p * Parser) grouping() Node {
-    expr := p.expression()
-    return expr
-}
-
 func (p *Parser) primary() Node {
     token := p.peek(0)
     
@@ -58,8 +54,26 @@ func (p *Parser) primary() Node {
     panic("")
 }
 
+func (p *Parser) unary() Node {
+    token := p.peek(0)
+    
+    if token.tokenType == MINUS {
+        p.advance()
+        
+        right := p.unary()
+        
+        return &NodeUnary{Operator: token.Lexeme, Right: right}
+    }
+    return p.primary()
+}
+
+func (p * Parser) grouping() Node {
+    expr := p.expression()
+    return expr
+}
+
 func (p *Parser) factor() Node {
-    expr := p.primary()
+    expr := p.unary()
     token := p.peek(0)
     
     if !p.isAtEnd() {
@@ -90,4 +104,32 @@ func (p *Parser) binary() Node {
 
 func (p *Parser) expression() Node {
     return p.binary()
+}
+
+func (p *Parser) assignement() Node {
+    token := p.peek(0)
+    var varVal Node
+    
+    if !p.isAtEnd() {
+    	if token.tokenType == VAR {
+            p.advance()
+            varType := token.Lexeme
+            p.advance()
+            varName := token.Lexeme
+            if p.peek(-1).tokenType.isType() {
+            	p.advance()
+                if p.peek(1).tokenType == EQUAL {
+                    p.advance()
+                    varVal = p.expression()
+                } else if p.peek(1).tokenType == SEMICOLON {
+                    varVal = nil
+                } else { PrintError(6) }
+                return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
+            } else {
+                PrintError(6)
+            }
+        }
+	}
+    PrintError(6)
+    panic("")
 }

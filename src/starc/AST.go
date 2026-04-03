@@ -37,12 +37,13 @@ type NodeVariable struct {
 
 func (n *NodeVariable) isANode() {}
 
-type NodeAssignement struct {
+type NodeStmtVar struct {
     Name string
+    Type any
     Value Node
 }
 
-func (n *NodeAssignement) isANode() {}
+func (n *NodeStmtVar) isANode() {}
 
 type NodeBlock struct {
     Expression Node

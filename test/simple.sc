@@ -1,5 +1,7 @@
 //package main
 /* MultiLine
-Comment*/
-1*2
-1/2
+Comment
+*/
+
+
+var string str = 0;

@@ -18,6 +18,14 @@ func (t TokenType) isDigit() bool {
     return t >= INT && t <= UFLOAT64
 }
 
+func (t TokenType) isInteger() bool {
+    return t >= INT && t <= INT64 || t >= UINT && t <= UINT64
+}
+
+func (t TokenType) isType() bool {
+    return t >= ARRAY && t <= STRING
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota

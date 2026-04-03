@@ -56,6 +56,7 @@ func getError(id uint8) (uint8, error) {
         case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break;
         case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break;
         case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break;
+        case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
         
     }
     message += ";\n"
@@ -100,57 +101,38 @@ func runPrompt() {
         }
         var line string = reader.Text();
         input = line;
-        run(line);
+        run(line)
         fmt.Println()
         hadCompileError = false;
     }
 }
 
 func compile(source string) {
-    var bytes, err = os.ReadFile(source);
-    if err != nil {
-        PrintError(4)
-    }
-    fmt.Println("No compiler implemented for now, use run mode", bytes);
-}
-func run(source string) {
-    var scanner Scanner;
-    scanner = Scanner{source: source, line: 1}
-    var tokens []Token = scanner.ScanTokens();
+    var scanner Scanner = Scanner{source: source, line: 1}
+    var tokens []Token = scanner.ScanTokens()
     var parser Parser = Parser{tokens: tokens, current: 0}
     lineTracker = scanner.line
-    tree := parser.expression()
+    ast := parser.expression()
+    var transpiler Transpiler = Transpiler{fileName: "simple"}
+    transpiler.GenerateCCode(ast)
     
-    printNode(tree, 0)
+}
+func run(source string) {
+    
+}
+
+func launch(source string) {
+    
 }
 
 func runCommand(arg string) {
     command := os.Args[2]
     switch command {
         case "ignite": compile(runFile(filePath)); break;
-        case "launch": run(runFile(filePath)); break;
+        case "launch": launch(input); break;
         case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:
         	fmt.Println(command)
         	PrintError(1);
-    }
-}
-
-func printNode(node Node, indent int) {
-    for i := 0; i < indent; i++ {
-        fmt.Print("	")
-    }
-    switch n := node.(type) {
-        case *NodeBinary:
-        	fmt.Print(n.Operator)
-        	printNode(n.Left, indent + 1)
-        	printNode(n.Right, indent + 1)
-        case *NodeLiteral:
-        	fmt.Print(n.Value)
-        case *NodeVariable:
-        	fmt.Print(n.Name)
-        case *NodeGroup:
-        	fmt.Print("()")
-            printNode(n.Expression, indent + 1)
     }
 }

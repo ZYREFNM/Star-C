@@ -1,7 +1,6 @@
 {
   "plugin": "org.smartide.plugin.go",
   "run": "rm -rf bin && mkdir -p bin && go build -o bin/starc ./src/... && rm -f $PREFIX/bin/starc && cp bin/starc $PREFIX/bin/starc && ./bin/starc",
-  "gui": false,
   "intelligence": {
     ".json": {
       "enabled": true,
@@ -22,6 +21,10 @@
     ".md": {
       "enabled": true,
       "run": "marksman server"
+    },
+    ".c": {
+      "enabled": true,
+      "run": "clangd"
     }
   }
 }
