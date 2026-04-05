@@ -13,6 +13,8 @@ import (
 var hadCompileError, hadRuntimeError,  hadImplementsError bool = false, false, false
 var input string
 var lineTracker int
+var tokType TokenType
+var wordTracker int
 var filePath string
 
 func main() {
@@ -51,13 +53,14 @@ func getError(id uint8) (uint8, error) {
     }
     switch id {
         case 0: message += "Process Runned Successfully"; hadImplementsError = true; break;
-        case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break;
-        case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format ..."; hadImplementsError = true; break;
-        case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break;
-        case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break;
-        case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break;
+        case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break
+        case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format ..."; hadImplementsError = true; break
+        case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break
+        case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break
+        case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break
         case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
-        case 7: message += fmt.Sprintf("Unknown type or object <%s>", input)
+        case 7: message += fmt.Sprintf("Unknown type or object <%s> of type <%v> at:%d", input, tokType, wordTracker); hadCompileError = true; break
+        case 8: message += "Missing semi-colon"; hadCompileError = true; break
         
     }
     message += ";\n"
@@ -109,13 +112,19 @@ func runPrompt() {
 }
 
 func compile(source string) {
+    fmt.Println("EOF is", EOF)
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
     var parser Parser = Parser{tokens: tokens, current: 0}
+    for token, _ := range parser.tokens {
+        wordTracker = parser.current
+        tokType = tokens[token].tokenType
+        fmt.Println(tokens[token])
+    }
     lineTracker = scanner.line
-    ast := parser.expression()
+    nodes := parser.Parse()
     var transpiler Transpiler = Transpiler{fileName: "simple"}
-    transpiler.GenerateCCode(ast)
+    transpiler.GenerateCCode(nodes)
     
 }
 func run(source string) {

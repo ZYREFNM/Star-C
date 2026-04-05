@@ -23,7 +23,11 @@ func (t TokenType) isInteger() bool {
 }
 
 func (t TokenType) isType() bool {
-    return t >= ARRAY && t <= STRING
+    return t >= ARRAY_TYPE && t <= STRING_TYPE
+}
+
+func (t TokenType) isDigitType() bool {
+    return t >= INT_TYPE && t <= INT64_TYPE || t >= UINT_TYPE && t <= UINT64_TYPE || t >= FLOAT_TYPE && t <= FLOAT64_TYPE || t >= UFLOAT_TYPE && t <= UFLOAT64
 }
 
 const (
@@ -77,6 +81,32 @@ const (
     UFLOAT32
     UFLOAT64
     STRING
+    
+    //Data-Type
+    ARRAY_TYPE
+    DICTIONARY_TYPE
+    IDENTIFIER_TYPE
+    INT_TYPE
+    INT8_TYPE
+    INT16_TYPE
+    INT32_TYPE
+    INT64_TYPE
+    FLOAT_TYPE
+    FLOAT8_TYPE
+    FLOAT16_TYPE
+    FLOAT32_TYPE
+    FLOAT64_TYPE
+    UINT_TYPE
+    UINT8_TYPE
+    UINT16_TYPE
+    UINT32_TYPE
+    UINT64_TYPE
+    UFLOAT_TYPE
+    UFLOAT8_TYPE
+    UFLOAT16_TYPE
+    UFLOAT32_TYPE
+    UFLOAT64_TYPE
+    STRING_TYPE
     
     //Keywords
     AND

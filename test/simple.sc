@@ -2,4 +2,6 @@
 
 
 
-var string str;
+var string str
+
+;

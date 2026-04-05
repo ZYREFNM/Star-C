@@ -12,6 +12,31 @@ type Scanner struct {
     line int;
 }
 
+var dataType = map[string]TokenType{
+	"array": ARRAY_TYPE,
+	"dict": DICTIONARY_TYPE,
+	"int": INT_TYPE,
+	"int8": INT8_TYPE,
+	"int16":INT16_TYPE,
+	"int32":INT32_TYPE,
+	"int64":INT64_TYPE,
+	"float":FLOAT_TYPE,
+	"float8":FLOAT8_TYPE,
+	"float16":FLOAT16_TYPE,
+	"float32":FLOAT32_TYPE,
+	"float64":FLOAT64_TYPE,
+	"uint":UINT_TYPE,
+	"uint8":UINT8_TYPE,
+	"uint16":UINT16_TYPE,
+	"uint32":UINT32_TYPE,
+	"uint64":UINT64_TYPE,
+	"ufloat":UFLOAT_TYPE,
+	"ufloat8":UFLOAT8_TYPE,
+	"ufloat16":UFLOAT16_TYPE,
+	"ufloat32":UFLOAT32_TYPE,
+	"ufloat64":UFLOAT64_TYPE,
+	"string":STRING_TYPE,
+}
 var keywords = map[string]TokenType{
     "and": AND,
     "break": BREAK,
@@ -148,10 +173,13 @@ func (s *Scanner) identifier() {
     }
     var text string
     text = s.source[s.start:s.current]
-    tokenType, ok := keywords[text]
-    if !ok {
-        tokenType = IDENTIFIER
+    tokenType, isKeyword := keywords[text]
+    if !isKeyword {
+        _tokenType, isType := dataType[text]
+        if !isType {_tokenType = IDENTIFIER}
+        tokenType= _tokenType
     }
+    
     s.addToken(tokenType)
 }
 

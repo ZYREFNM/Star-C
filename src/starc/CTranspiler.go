@@ -31,11 +31,15 @@ func (t *Transpiler) Translate(node Node) string {
     }
 }
 
-func (t *Transpiler) GenerateCCode(ast Node) {
-    fileContents := t.Translate(ast)
+func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
     CBuilder.WriteString("#include <stdio.h>\n\n")
-    CBuilder.WriteString(fmt.Sprintf("int main() {\n%s\n}", fileContents))
+    var mainContents string
+    for _, node := range nodes {
+        line := t.Translate(node)
+        mainContents += fmt.Sprintf("%s\n", line)
+    }
+    CBuilder.WriteString(fmt.Sprintf("int main() {\n%s\n}", mainContents))
     
 	t.WriteInFile(CBuilder.String())
     fmt.Println(fmt.Sprintf("File %s.c", t.fileName))

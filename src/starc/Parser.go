@@ -10,8 +10,31 @@ type Parser struct {
     current int
 }
 
-func (p *Parser) Parse() {
+func (p *Parser) Parse() []Node {
+    var statements []Node
     
+    for !p.isAtEnd() {
+        stmt := p.ParseStmt()
+        if stmt != nil {
+            statements = append(statements, stmt)
+        }
+    }
+    return statements
+}
+
+func (p *Parser) ParseStmt() Node {
+    token := p.peek(0)
+    
+    if p.isAtEnd() {return nil}
+    
+    if token.tokenType == VAR {return p.varAssignement()}
+    if token.tokenType == SEMICOLON {
+        p.advance()
+        return nil
+    }
+    if p.isAtEnd() {return nil}
+    
+    return p.expression()
 }
 
 func (p *Parser) peek(offset int) Token {
@@ -121,6 +144,7 @@ func (p *Parser) varAssignement() Node {
             p.advance()
             varVal = p.expression()
         }
+        
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
             return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
