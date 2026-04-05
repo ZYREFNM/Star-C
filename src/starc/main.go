@@ -57,6 +57,7 @@ func getError(id uint8) (uint8, error) {
         case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break;
         case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break;
         case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
+        case 7: message += fmt.Sprintf("Unknown type or object <%s>", input)
         
     }
     message += ";\n"
@@ -118,7 +119,6 @@ func compile(source string) {
     
 }
 func run(source string) {
-    
 }
 
 func launch(source string) {

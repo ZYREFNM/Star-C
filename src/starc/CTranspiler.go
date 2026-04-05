@@ -25,7 +25,7 @@ func (t *Transpiler) Translate(node Node) string {
         case *NodeLiteral: return fmt.Sprintf("%v", n.Value)
         case *NodeUnary: return fmt.Sprintf("%s (%s)", n.Operator, t.Translate(n.Right))
         case *NodeGroup: return fmt.Sprintf("(%s)", t.Translate(n.Expression))
-        case *NodeStmtVar: return fmt.Sprintf("%s %s", n.Type, n.Name)
+        case *NodeStmtVar: return fmt.Sprintf("%s %s;", n.Type, n.Name)
         case *NodeVariable: return n.Name
         default: return ""
     }

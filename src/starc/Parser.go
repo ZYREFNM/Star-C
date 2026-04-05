@@ -1,7 +1,7 @@
 package main
 
 import (
-    //"fmt"
+    "fmt"
     //"strconv"
 )
 
@@ -24,6 +24,7 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() Token {
     if !p.isAtEnd() {p.current++}
+    fmt.Print(p.current, p.current - 1)
     return p.tokens[p.current - 1]
 }
 
@@ -44,13 +45,13 @@ func (p *Parser) primary() Node {
     if token.tokenType == LEFT_PAREN {
         p.advance()
         expr := p.expression()
-        if token.tokenType != RIGHT_PAREN && p.isAtEnd() {
+        if p.peek(0).tokenType != RIGHT_PAREN && p.isAtEnd() {
             PrintError(5)
         } else {
             return &NodeGroup{Expression: expr}
         }
     }
-    PrintError(5)
+    PrintError(7)
     panic("")
 }
 
@@ -106,30 +107,27 @@ func (p *Parser) expression() Node {
     return p.binary()
 }
 
-func (p *Parser) assignement() Node {
-    token := p.peek(0)
-    var varVal Node
+func (p *Parser) varAssignement() Node {
+    var varVal Node = nil
     
     if !p.isAtEnd() {
-    	if token.tokenType == VAR {
+        if p.peek(0).tokenType != VAR { PrintError(6); panic("") }
+        if !p.peek(0).tokenType.isType() { PrintError(7); panic("") }
+        varType := p.advance()
+        if p.peek(0).tokenType != IDENTIFIER { PrintError(3); panic("") }
+        varName := p.advance().Lexeme
+        
+        if p.peek(0).tokenType == EQUAL {
             p.advance()
-            varType := token.Lexeme
-            p.advance()
-            varName := token.Lexeme
-            if p.peek(-1).tokenType.isType() {
-            	p.advance()
-                if p.peek(1).tokenType == EQUAL {
-                    p.advance()
-                    varVal = p.expression()
-                } else if p.peek(1).tokenType == SEMICOLON {
-                    varVal = nil
-                } else { PrintError(6) }
-                return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
-            } else {
-                PrintError(6)
-            }
+            varVal = p.expression()
         }
-	}
+        if p.peek(0).tokenType == SEMICOLON {
+            p.advance()
+            return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
+        }
+        PrintError(6)
+        panic("")
+    }
     PrintError(6)
     panic("")
 }
