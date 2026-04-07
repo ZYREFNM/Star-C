@@ -1,0 +1,2 @@
+var string name;
+print "Hello World %s", name;

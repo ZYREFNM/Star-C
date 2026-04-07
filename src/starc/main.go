@@ -33,7 +33,7 @@ func main() {
             PrintError(0)
         }
         filePath = os.Args[len(os.Args)-1]
-        if !strings.HasSuffix(filePath, ".sc") {
+        if !strings.HasSuffix(filePath, ".starc") {
             PrintError(2)
         }
         runCommand(filePath)
@@ -54,7 +54,7 @@ func getError(id uint8) (uint8, error) {
     switch id {
         case 0: message += "Process Runned Successfully"; hadImplementsError = true; break;
         case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break
-        case 2: message += "File type unsupported...\nPlease try again with a '.sc' file format ..."; hadImplementsError = true; break
+        case 2: message += "File type unsupported...\nPlease try again with a '.starc' file format ...\nexemple: file.starc"; hadImplementsError = true; break
         case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break
         case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break
         case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break
