@@ -65,6 +65,7 @@ var keywords = map[string]TokenType{
     "true": TRUE,
     "var": VAR,
     "while": WHILE,
+    "whith": WITH,
 }
 
 func (s *Scanner) ScanTokens() []Token {
@@ -95,10 +96,27 @@ func (s *Scanner) scanToken() {
     	case '}': s.addToken(RIGHT_BRACE); break;
     	case ',': s.addToken(COMMA); break;
     	case '.': s.addToken(DOT); break;
-    	case '-': s.addToken(MINUS); break;
-    	case '+': s.addToken(PLUS); break;
+    	case '-':
+        	tokenType := MINUS;
+            if s.match('>') {
+                tokenType = RIGHT_ARROW
+            } else if s.match('=') {
+                tokenType = MINUS_EQUAL
+            }
+        	s.addToken(tokenType); break;
+    	case '+':
+        	tokenType := PLUS
+        	if s.match('=') {
+                tokenType = PLUS_EQUAL
+            }
+        	s.addToken(tokenType); break;
     	case ';': s.addToken(SEMICOLON); break;
-    	case '*': s.addToken(STAR); break;
+    	case '*':
+        	tokenType := STAR
+        	if s.match('=') {
+                tokenType = STAR_EQUAL
+            }
+            s.addToken(tokenType); break;
     	case '!':
         	tokenType := BANG;
             if s.match('=') {
@@ -138,7 +156,9 @@ func (s *Scanner) scanToken() {
                     s.advance()
                 }    
             } else {
-                s.addToken(SLASH)
+                tokenType := SLASH
+                if s.match('=') {tokenType = SLASH_EQUAL}
+                s.addToken(tokenType); break
             }
         break
         case ' ':

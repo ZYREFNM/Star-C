@@ -30,6 +30,14 @@ func (t TokenType) isDigitType() bool {
     return t >= INT_TYPE && t <= INT64_TYPE || t >= UINT_TYPE && t <= UINT64_TYPE || t >= FLOAT_TYPE && t <= FLOAT64_TYPE || t >= UFLOAT_TYPE && t <= UFLOAT64
 }
 
+func (t TokenType) isBoolOperator() bool {
+    return t >= BANG_EQUAL && t <= LESS_EQUAL && t != EQUAL
+}
+
+func (t TokenType) isAssignOperator() bool {
+    return t == EQUAL || t >= PLUS_EQUAL && t <= SLASH_EQUAL
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota
@@ -55,6 +63,11 @@ const (
     GREATER_EQUAL
     LESS
     LESS_EQUAL
+    PLUS_EQUAL
+    MINUS_EQUAL
+    STAR_EQUAL
+    SLASH_EQUAL
+    RIGHT_ARROW
     
     //Literals
     ARRAY
@@ -136,6 +149,7 @@ const (
     TRUE
     VAR
     WHILE
+    WITH
     
     EOF
 )

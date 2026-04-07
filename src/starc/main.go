@@ -61,7 +61,7 @@ func getError(id uint8) (uint8, error) {
         case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
         case 7: message += fmt.Sprintf("Unknown type or object <%s> of type <%v> at:%d", input, tokType, wordTracker); hadCompileError = true; break
         case 8: message += "Missing semi-colon"; hadCompileError = true; break
-        
+        case 9: message += "Expected value after statement"; hadCompileError = true; break
     }
     message += ";\n"
     if hadCompileError || hadRuntimeError && !hadImplementsError {
@@ -112,19 +112,18 @@ func runPrompt() {
 }
 
 func compile(source string) {
-    fmt.Println("EOF is", EOF)
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
     var parser Parser = Parser{tokens: tokens, current: 0}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
-        fmt.Println(tokens[token])
     }
     lineTracker = scanner.line
     nodes := parser.Parse()
     var transpiler Transpiler = Transpiler{fileName: "simple"}
     transpiler.GenerateCCode(nodes)
+    PrintError(0)
     
 }
 func run(source string) {

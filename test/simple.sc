@@ -1,7 +1,3 @@
-//package main
+print "Hello World";
 
-
-
-var string str
-
-;
+var string name;

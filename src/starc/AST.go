@@ -4,49 +4,109 @@ type Node interface {
     isANode()
 }
 
+type NodeStmt interface {
+    Node
+    isStmt()
+}
+
+type NodeExpr interface {
+    Node
+    isExpr()
+}
+
+type NodeStmtExpr struct {
+    Expr NodeExpr
+}
+func (n *NodeStmtExpr) isANode() {}
+func (n *NodeStmtExpr) isStmt() {}
+
+
 type NodeBinary struct {
     Left Node
     Operator string
     Right Node
 }
-
 func (n *NodeBinary) isANode() {}
+func (n *NodeBinary) isExpr() {}
+
 
 type NodeGroup struct {
-    Expression Node
+    Expression NodeExpr
 }
-
 func (n *NodeGroup) isANode() {}
+func (n *NodeGroup) isExpr() {}
+
 
 type NodeLiteral struct {
     Value any
 }
-
 func (n *NodeLiteral) isANode() {}
+func (n *NodeLiteral) isExpr() {}
+
 
 type NodeUnary struct {
     Operator string
     Right Node
 }
-
 func (n *NodeUnary) isANode() {}
+func (n *NodeUnary) isExpr() {}
+
 
 type NodeVariable struct {
     Name string
 }
-
 func (n *NodeVariable) isANode() {}
+func (n *NodeVariable) isExpr() {}
+
 
 type NodeStmtVar struct {
     Name string
-    Type any
+    Type Token
     Value Node
 }
-
 func (n *NodeStmtVar) isANode() {}
+func (n *NodeStmtVar) isStmt() {}
+
+
+type NodeAssignement struct {
+    Name string
+    Value Node
+}
+func (n *NodeAssignement) isANode() {}
+func (n *NodeAssignement) isStmt() {}
+
 
 type NodeBlock struct {
-    Expression Node
+	Instructions []NodeStmt
 }
-
 func (n *NodeBlock) isANode() {}
+func (n *NodeBlock) isStmt() {}
+
+
+type NodeStmtReturn struct {
+    Value NodeExpr
+}
+func (n *NodeStmtReturn) isANode() {}
+func (n *NodeStmtReturn) isStmt() {}
+
+
+type NodeStmtPrint struct {
+    Expressions []NodeExpr
+}
+func (n *NodeStmtPrint) isANode() {}
+func (n *NodeStmtPrint) isStmt() {}
+
+
+type NodeStmtIf struct {
+    Condition NodeExpr
+    Result NodeStmt
+}
+func (n *NodeStmtIf) isANode() {}
+func (n *NodeStmtIf) isStmt() {}
+
+type NodeStmtWhile struct {
+    Condition NodeExpr
+    Result NodeStmt
+}
+func (n *NodeStmtWhile) isANode() {}
+func (n *NodeStmtWhile) isStmt() {}
