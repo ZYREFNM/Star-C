@@ -68,6 +68,7 @@ const (
     STAR_EQUAL
     SLASH_EQUAL
     RIGHT_ARROW
+    CONCAT
     
     //Literals
     ARRAY

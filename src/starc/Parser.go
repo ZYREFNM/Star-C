@@ -29,10 +29,11 @@ func (p *Parser) ParseStmt() NodeStmt {
     
     if token.tokenType == IDENTIFIER && p.peek(1).tokenType == EQUAL {return p.assignement()}
     if token.tokenType == IF {return p.ifStmt()}
-    if token.tokenType == VAR {return p.varAssignement()}
+    if token.tokenType == VAR {return p.varAssignment()}
     if token.tokenType == PRINT {return p.printStmt()}
     if token.tokenType == RETURN {return p.returnStmt()}
     if token.tokenType == WHILE {return p.whileStmt()}
+    if token.tokenType == FUNC {return p.funcInit()}
     
     if token.tokenType == SEMICOLON {
         p.advance()
@@ -61,19 +62,17 @@ func (p *Parser) advance() Token {
 // Next following are the nodes’ recursion
 
 func (p *Parser) primary() NodeExpr {
-    token := p.peek(0)
+    token := p.advance()
     
     if token.tokenType.isDigit() {
-        p.advance()
         return &NodeLiteral{Value: token.Lexeme}
     }
     
     if token.tokenType == IDENTIFIER {
-        p.advance()
+        if p.peek(0).tokenType == LEFT_PAREN {return p.funcCall()}
         return &NodeVariable{Name: token.Lexeme}
     }
     if token.tokenType == LEFT_PAREN {
-        p.advance()
         expr := p.grouping()
         if p.peek(0).tokenType != RIGHT_PAREN && p.isAtEnd() {
             PrintError(5)
@@ -83,17 +82,26 @@ func (p *Parser) primary() NodeExpr {
         }
     }
     if token.tokenType == NULL {
-        p.advance()
         return &NodeLiteral{Value: token.Lexeme}
     }
     
     if token.tokenType == STRING {
-        p.advance()
         return &NodeLiteral{Value: token.Lexeme}
     }
     
     PrintError(5)
     panic("")
+}
+
+func (p *Parser) concat() NodeExpr {
+    expr := p.primary()
+    
+    for p.peek(0).tokenType == CONCAT {
+        p.advance()
+        right := p.primary()
+        expr = &NodeExprConcat{From: right, To: expr}
+    }
+    return expr
 }
 
 func (p *Parser) unary() NodeExpr {
@@ -106,7 +114,7 @@ func (p *Parser) unary() NodeExpr {
         
         return &NodeUnary{Operator: token.Lexeme, Right: right}
     }
-    return p.primary()
+    return p.concat()
 }
 
 func (p * Parser) grouping() NodeExpr {
@@ -161,15 +169,17 @@ func (p *Parser) expression() NodeExpr {
     return p.comparison()
 }
 
-func (p *Parser) varAssignement() NodeStmt {
+func (p *Parser) varAssignment() NodeStmt {
     var varVal Node = nil
     
     if !p.isAtEnd() {
         p.advance()
         if !p.peek(0).tokenType.isType() { PrintError(7); panic("") }
         varType := p.advance()
+        fmt.Println("Var Type: ", varType)
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3); panic("") }
         varName := p.advance().Lexeme
+        fmt.Println("Var Name: ", varName)
         
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -180,8 +190,6 @@ func (p *Parser) varAssignement() NodeStmt {
             p.advance()
             return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
         }
-        //PrintError(6)
-        //panic("")
     }
     PrintError(8)
     panic("")
@@ -271,15 +279,12 @@ func (p *Parser) ifStmt() NodeStmt {
 }
 
 func (p *Parser) whileStmt() NodeStmt {
-    fmt.Println("while commence")
     var condition NodeExpr
     var result NodeStmt
     if !p.isAtEnd() {
         p.advance()
         if p.peek(0).tokenType == LEFT_PAREN {p.advance();}
-        fmt.Println("Avant la compa")
         condition = p.comparison()
-        fmt.Println("Après")
         if p.peek(0).tokenType != RIGHT_PAREN {PrintError(5); panic("")}
         p.advance()
         if p.peek(0).tokenType == LEFT_BRACE {
@@ -288,6 +293,69 @@ func (p *Parser) whileStmt() NodeStmt {
             result = p.ParseStmt()
         }
         return &NodeStmtWhile{Condition: condition, Result: result}
+    }
+    PrintError(5)
+    panic("")
+}
+
+func (p *Parser) parseParam() NodeStmt {
+    var paramVal Node = nil
+    
+    if !p.isAtEnd() {
+        p.advance()
+        if !p.peek(0).tokenType.isType() { PrintError(7); panic("") }
+        paramType := p.advance()
+        if p.peek(0).tokenType != IDENTIFIER { PrintError(3); panic("") }
+        paramName := p.advance().Lexeme
+        
+        if p.peek(0).tokenType == COMMA {
+            return &NodeStmtVar{Name: paramName, Type: paramType, Value: paramVal}
+        }
+        
+        if p.peek(0).tokenType == RIGHT_PAREN {
+            return &NodeStmtVar{Name: paramName, Type: paramType, Value: paramVal}
+        }
+    }
+    PrintError(8)
+    panic("")
+}
+
+func (p *Parser) funcInit() NodeStmt {
+    var paramList []NodeStmt = nil
+    if !p.isAtEnd() {
+        p.advance()
+        returnType := p.advance().Lexeme
+        if p.peek(0).tokenType != IDENTIFIER {PrintError(5); panic("")}
+        funcName := p.advance().Lexeme
+        if p.peek(1).tokenType != RIGHT_PAREN {
+            fmt.Println(funcName)
+            for p.peek(0).tokenType != RIGHT_PAREN {
+                paramList = append(paramList, p.parseParam())
+            }
+            p.advance()
+        } else {p.advance(); p.advance()}
+        if p.peek(0).tokenType != LEFT_BRACE {fmt.Println(funcName); PrintError(6); panic("")}
+        code := p.blockStmt()
+        return &NodeStmtFuncInit{Return: returnType, Name: funcName, Param: paramList, Code: code}
+    }
+    PrintError(7)
+    panic("")
+}
+
+func (p *Parser) funcCall() NodeExpr {
+    var argsList []NodeExpr
+    if !p.isAtEnd() {
+        funcName := p.peek(-1).Lexeme
+        p.advance()
+        for p.peek(0).tokenType != RIGHT_PAREN {
+            fmt.Println("Commencement ", p.peek(0))
+            arg := p.expression()
+            fmt.Println("L'expression: ", arg)
+            argsList = append(argsList, arg)
+            fmt.Println("Fin ", p.peek(0))
+        }
+        p.advance()
+        return &NodeExprFuncCall{Name: funcName, Args: argsList}
     }
     PrintError(5)
     panic("")

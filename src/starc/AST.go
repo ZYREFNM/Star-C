@@ -52,6 +52,13 @@ func (n *NodeUnary) isANode() {}
 func (n *NodeUnary) isExpr() {}
 
 
+type NodeExprConcat struct {
+    From NodeExpr
+    To NodeExpr
+}
+func (n *NodeExprConcat) isANode() {}
+func (n *NodeExprConcat) isExpr() {}
+
 type NodeVariable struct {
     Name string
 }
@@ -110,3 +117,21 @@ type NodeStmtWhile struct {
 }
 func (n *NodeStmtWhile) isANode() {}
 func (n *NodeStmtWhile) isStmt() {}
+
+
+type NodeStmtFuncInit struct {
+    Return string
+    Name string
+    Param []NodeStmt
+    Code NodeStmt
+}
+func (n *NodeStmtFuncInit) isANode() {}
+func (n *NodeStmtFuncInit) isStmt() {}
+
+
+type NodeExprFuncCall struct {
+    Name string
+    Args []NodeExpr
+}
+func (n *NodeExprFuncCall) isANode() {}
+func (n *NodeExprFuncCall) isExpr() {}

@@ -1,2 +1,7 @@
-var string name;
-print "Hello World %s", name;
+func string helloName(string name) {
+	return "Hello";
+}
+
+func int main() {
+	print helloName("Alex");
+}

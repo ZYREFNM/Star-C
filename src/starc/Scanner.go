@@ -133,6 +133,8 @@ func (s *Scanner) scanToken() {
         	tokenType := LESS
             if s.match('=') {
                 tokenType = LESS_EQUAL;
+            } else if s.match('<') {
+                tokenType = CONCAT;
             }
         	s.addToken(tokenType); break;
         case '>':
@@ -295,7 +297,7 @@ func (s *Scanner) stringify() {
         s.advance();
     }
     if s.isAtEnd() {
-        PrintError(4);
+        PrintError(2);
     }
     s.advance();
     
