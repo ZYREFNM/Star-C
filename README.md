@@ -9,4 +9,4 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
     func int main() {
         var string starc = "this is Star-C!";
         print "Hello ", "world" << ", " << starc;
-    }
+    } // This print "Hello world, this is Star-C!"
