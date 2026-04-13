@@ -3,3 +3,10 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
 
 - ## Version
 	Currently is Pre-Alpha version 0.5.3
+
+- ## Exemple
+	```go
+    func int main() {
+        var string starc = "this is Star-C!";
+        print "Hello ", "world" << ", " << starc;
+    }

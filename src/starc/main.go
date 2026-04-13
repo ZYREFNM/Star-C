@@ -5,10 +5,8 @@ import (
     "os"
     "os/exec"
     "log"
-    "bufio"
     "errors"
     "strings"
-    //"strconv"
 )
 
 var hadCompileError, hadRuntimeError,  hadImplementsError bool = false, false, false
@@ -21,13 +19,14 @@ var filePath string
 func main() {
     log.SetFlags(0);
     log.SetPrefix(">");
+    // We take commands and flags
     
     fmt.Println(fmt.Sprintf("%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
     hadImplementsError = false
     if len(os.Args) > 4 {
         PrintError(1)
     }else if len(os.Args) == 2{
-        runPrompt()
+        fmt.Println("Updated")
     }else if len(os.Args) >= 3 {
         if len(os.Args) < 4 {
             runCommand(filePath)
@@ -97,21 +96,6 @@ func runFile(path string) string {
     return string(bytes)
 }
 
-func runPrompt() {
-    var reader = bufio.NewScanner(os.Stdin);
-    for {
-        fmt.Print("> ");
-        if !reader.Scan() {
-            break;
-        }
-        var line string = reader.Text();
-        input = line;
-        run(line)
-        fmt.Println()
-        hadCompileError = false;
-    }
-}
-
 func ignite(source string) {
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
@@ -125,14 +109,11 @@ func ignite(source string) {
     var transpiler Transpiler = Transpiler{fileName: "simple"}
     transpiler.GenerateCCode(nodes)
     fmt.Println(transpiler.fileName)
-    cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/std/runtime.c", "-o", transpiler.fileName)
+    cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/std/runtime.c", "-Isrc/std", "-o", transpiler.fileName)
     if err := cmd.Run(); err != nil {
 	fmt.Println("GCC error:", err)
-}
-    
-}
-func run(source string) {
-}
+    }
+}    
 
 func launch(source string) {
     

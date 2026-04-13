@@ -1,8 +1,4 @@
-func string helloName(string name) {
-	return "Hello " << name;
-}
-
 func int main() {
-	print helloName("Alex");
-    return 0;
+	var string starc = "this is Star-C!";
+	print "Hello ", "world" << ", " << starc;
 }
