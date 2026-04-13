@@ -328,7 +328,7 @@ func (p *Parser) funcInit() NodeStmt {
         if p.peek(0).tokenType != IDENTIFIER {PrintError(5); panic("")}
         funcName := p.advance().Lexeme
         if p.peek(1).tokenType != RIGHT_PAREN {
-            fmt.Println(funcName)
+            //fmt.Println(funcName)
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
             }
@@ -348,11 +348,11 @@ func (p *Parser) funcCall() NodeExpr {
         funcName := p.peek(-1).Lexeme
         p.advance()
         for p.peek(0).tokenType != RIGHT_PAREN {
-            fmt.Println("Commencement ", p.peek(0))
+            //fmt.Println("Commencement ", p.peek(0))
             arg := p.expression()
-            fmt.Println("L'expression: ", arg)
+            //fmt.Println("L'expression: ", arg)
             argsList = append(argsList, arg)
-            fmt.Println("Fin ", p.peek(0))
+            //fmt.Println("Fin ", p.peek(0))
         }
         p.advance()
         return &NodeExprFuncCall{Name: funcName, Args: argsList}

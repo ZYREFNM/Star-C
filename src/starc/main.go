@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "os"
+    "os/exec"
     "log"
     "bufio"
     "errors"
@@ -111,7 +112,7 @@ func runPrompt() {
     }
 }
 
-func compile(source string) {
+func ignite(source string) {
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
     var parser Parser = Parser{tokens: tokens, current: 0}
@@ -123,7 +124,11 @@ func compile(source string) {
     nodes := parser.Parse()
     var transpiler Transpiler = Transpiler{fileName: "simple"}
     transpiler.GenerateCCode(nodes)
-    PrintError(0)
+    fmt.Println(transpiler.fileName)
+    cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/std/runtime.c", "-o", transpiler.fileName)
+    if err := cmd.Run(); err != nil {
+	fmt.Println("GCC error:", err)
+}
     
 }
 func run(source string) {
@@ -136,7 +141,7 @@ func launch(source string) {
 func runCommand(arg string) {
     command := os.Args[2]
     switch command {
-        case "ignite": compile(runFile(filePath)); break;
+        case "ignite": ignite(runFile(filePath)); break;
         case "launch": launch(input); break;
         case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:

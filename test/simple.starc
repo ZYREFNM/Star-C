@@ -1,7 +1,8 @@
 func string helloName(string name) {
-	return "Hello";
+	return "Hello " << name;
 }
 
 func int main() {
 	print helloName("Alex");
+    return 0;
 }

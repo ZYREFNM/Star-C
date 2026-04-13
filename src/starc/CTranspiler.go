@@ -32,7 +32,7 @@ func (t *Transpiler) Translate(node Node) string {
         case *NodeLiteral: return fmt.Sprintf("%v", n.Value)
         case *NodeUnary: return fmt.Sprintf("%s (%s)", n.Operator, t.Translate(n.Right))
         case *NodeExprConcat:
-        	return ""
+        	return fmt.Sprintf("star_concat(%s, %s)", t.Translate(n.To), t.Translate(n.From))
         case *NodeGroup: return fmt.Sprintf("(%s)", t.Translate(n.Expression))
         case *NodeStmtVar:
         	Type := t.matchType(n.Type.Lexeme)
@@ -76,7 +76,6 @@ func (t *Transpiler) Translate(node Node) string {
             code := t.Translate(n.Code)
         	return fmt.Sprintf("%s %s(%s) %s", t.matchType(n.Return), n.Name, strings.Join(list, ", "), code)
         case *NodeExprFuncCall:
-        	fmt.Println("Contacté")
         	var argsList []string
             for _, arg := range n.Args {
                 argsList = append(argsList, t.Translate(arg))
@@ -88,7 +87,7 @@ func (t *Transpiler) Translate(node Node) string {
 
 func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
-    CBuilder.WriteString("#include <stdio.h>\n\n")
+    CBuilder.WriteString("#include <stdio.h>\n#include \"src/std/runtime.h\"\n\n")
     var mainContents string
     for _, node := range nodes {
         line := t.Translate(node)
