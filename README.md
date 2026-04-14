@@ -7,6 +7,6 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
 - ## Exemple
 	```go
     func int main() {
-        print "Hello ", "world";
+        print "Hello, world!";
         return 0;
     } // This is a basic Hello World
