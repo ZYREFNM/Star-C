@@ -25,6 +25,10 @@
     ".c": {
       "enabled": true,
       "run": "clangd"
+    },
+    ".h": {
+      "enabled": true,
+      "run": "clangd"
     }
   }
 }
