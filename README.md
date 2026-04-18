@@ -5,8 +5,32 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
 	Currently is Pre-Alpha version 0.5.4
 
 - ## Exemple
+	Simple Hello, world!
 	```go
     func int main() {
         print "Hello, world!";
         return 0;
-    } // This is a basic Hello World
+    }
+    ```
+    
+    Advanced bank account representation
+    ``` go
+    class BankAccount {
+        pub var string accountName;
+        prv {
+            var boolean accessible = true;
+            var <get, set> float64 money {
+                get() <- this;
+                set(float64 value) <- this;
+            }
+        }
+        
+        func BankAccount new(boolean accessible, float money) {
+            this.accessible = accessible;
+            this.money = money;
+        }
+        
+        func void deactivate() {
+            this.accessible = false;
+        }
+    }
