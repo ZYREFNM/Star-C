@@ -6,7 +6,3 @@ class BankAccount {
     	return characters << "It works!";
 	}
 }
-
-func int main() {
-	print BankAccount.chara()
-}

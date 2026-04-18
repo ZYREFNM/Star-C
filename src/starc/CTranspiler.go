@@ -115,8 +115,23 @@ func (t *Transpiler) Translate(node Node) string {
                 code += "}"
                 Type = "struct"
             }
-        	return fmt.Sprintf("typedef %s%s %s;\n", Type, code, typeName)
-            
+        	return fmt.Sprintf("typedef %s%s %s\n", Type, code, typeName)
+        case *NodeStmtClass:
+        	className := n.Name
+            var classTypes string
+            var classVars string
+            var classFuncs string
+            for _, e := range n.Vars {
+                classVars += "	" + t.Translate(e) + "\n"
+            }
+            for _, e := range n.TypeDef {
+                classTypes += "	" + t.Translate(e) + "\n"
+            }
+            for _, e := range n.Func {
+                classFuncs += "	" + t.Translate(e) + "\n"
+            }
+            return fmt.Sprintf("typedef struct {\n%s\n} %s;\n%s\n%s", classVars, className, classTypes, classFuncs)
+        
         default: return ""
     }
 }
