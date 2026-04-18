@@ -10,6 +10,7 @@ type Scanner struct {
     start int;
     current int;
     line int;
+    input string
 }
 
 var dataType = map[string]TokenType{
@@ -264,6 +265,7 @@ func (s *Scanner) addToken(tokenType TokenType) {
 
 func (s *Scanner) addSpecToken(tokType TokenType, literal any) {
     var text string = s.source[s.start:s.current];
+    input = text
     s.tokens = append(s.tokens, Token{
         tokenType: tokType,
         Lexeme: text,

@@ -20,7 +20,7 @@ func main() {
     log.SetFlags(0);
     log.SetPrefix(">");
     
-    fmt.Println(fmt.Sprintf("%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
+    fmt.Println(fmt.Sprintf("\n%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
     hadImplementsError = false
     if len(os.Args) > 4 {
         PrintError(1, "Try to run command like this 'starc [flag] <input>'")
@@ -61,6 +61,7 @@ func getError(id uint8) (uint8, error) {
         case 7: message += fmt.Sprintf("Unknown type or object <%s> of type <%v> at:%d", input, tokType, wordTracker); hadCompileError = true; break
         case 8: message += "Missing character"; hadCompileError = true; break
         case 9: message += "Expected value after statement"; hadCompileError = true; break
+        case 10: message += fmt.Sprintf("Object %s already exist in current scope or context", input)
     }
     message += ";\n"
     if hadCompileError || hadRuntimeError && !hadImplementsError {
@@ -95,12 +96,13 @@ func runFile(path string) string {
 func ignite(source string) {
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
-    var parser Parser = Parser{tokens: tokens, current: 0, customTypes: make(map[string]bool)}
+    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]any)}}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
     }
     lineTracker = scanner.line
+    input = scanner.input
     nodes := parser.Parse()
     var transpiler Transpiler = Transpiler{fileName: "simple"}
     transpiler.GenerateCCode(nodes)

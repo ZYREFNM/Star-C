@@ -156,3 +156,13 @@ type NodeStmtTypeDef struct {
 }
 func (n *NodeStmtTypeDef) isANode() {}
 func (n *NodeStmtTypeDef) isStmt() {}
+
+
+type NodeStmtClass struct {
+    Name string
+    Vars []NodeStmt
+    Func []NodeStmt
+    TypeDef []NodeStmt
+}
+func (n *NodeStmtClass) isANode() {}
+func (n *NodeStmtClass) isStmt() {}

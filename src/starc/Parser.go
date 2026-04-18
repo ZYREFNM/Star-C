@@ -1,13 +1,13 @@
 package main
 
 import (
-    "fmt"
+    //"fmt"
 )
 
 type Parser struct {
     tokens []Token
     current int
-    customTypes map[string]bool
+    envi Environnement
 }
 
 func (p *Parser) Parse() []Node {
@@ -35,6 +35,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     if token.tokenType == WHILE {return p.whileStmt()}
     if token.tokenType == FUNC {return p.funcInit()}
     if token.tokenType == TYPEDEF {return p.typeDef()}
+    if token.tokenType == CLASS {return p.classDef()}
     
     if token.tokenType == SEMICOLON {
         p.advance()
@@ -174,13 +175,12 @@ func (p *Parser) varAssignment() NodeStmt {
     
     if !p.isAtEnd() {
         p.advance()
-        if !p.peek(0).tokenType.isType() && !p.customTypes[p.peek(0).Lexeme] { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
+        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
         
         varType := p.advance()
-        fmt.Println("Var Type: ", varType)
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
-        fmt.Println("Var Name: ", varName)
+        if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
         
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -189,6 +189,7 @@ func (p *Parser) varAssignment() NodeStmt {
         
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
+            p.envi.Variable[varName] = varVal
             return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
         }
     }
@@ -334,7 +335,7 @@ func (p *Parser) funcInit() NodeStmt {
             }
             p.advance()
         } else {p.advance(); p.advance()}
-        if p.peek(0).tokenType != LEFT_BRACE {fmt.Println(funcName); PrintError(6, "Missing left brace"); panic("")}
+        if p.peek(0).tokenType != LEFT_BRACE {PrintError(6, "Missing left brace"); panic("")}
         code := p.blockStmt()
         return &NodeStmtFuncInit{Return: returnType, Name: funcName, Param: paramList, Code: code}
     }
@@ -363,25 +364,45 @@ func (p *Parser) typeDef() NodeStmt {
         p.advance()
         var typeData Token = p.advance()
         var typeName string = p.advance().Lexeme
-        p.customTypes[typeName] = true
+        if p.envi.hasType(typeName) {PrintError(10, "Object or type already exist in current context"); panic("")}
+        p.envi.Type[typeName] = ""
         var typeVars []NodeStmt = nil
         if typeData.tokenType == STRUCT {
-            fmt.Println("Ici ", p.peek(0))
             p.advance()
             for p.peek(0).tokenType != RIGHT_BRACE {
-                fmt.Println("On suit ", p.peek(0))
                 typeVars = append(typeVars, p.varAssignment())
-                fmt.Println("On suit 2 ", p.peek(0))
             }
             p.advance()
         } else {
-            fmt.Println("Là ", p.peek(0))
             if p.peek(0).tokenType != SEMICOLON {PrintError(5, "Missing semi-colon ;"); panic("")}
         }
-        fmt.Println("on a une struct")
         return &NodeStmtTypeDef{Type: typeData, Name: typeName, Vars: typeVars}
     }
-    fmt.Println("On a un problème")
-    PrintError(5, "Invalid typedef")
+    PrintError(5, "Invalid typedef, not ended correctly before EOF")
+    panic("")
+}
+
+/*func (p *Parser) classCode() NodeStmt {
+    
+}*/
+
+func (p *Parser) classDef() NodeStmt {
+    if !p.isAtEnd() {
+        var classVars []NodeStmt = nil
+        var classFunc []NodeStmt = nil
+        var classTypes []NodeStmt = nil
+        p.advance()
+        className := p.advance().Lexeme
+        if p.envi.hasType(className) {PrintError(10, "Class declared twice in the same context"); panic("")}
+        if p.advance().tokenType != LEFT_BRACE {PrintError(8, "Expected left brace {"); panic("")}
+        for p.peek(0).tokenType != RIGHT_BRACE {
+            if p.peek(0).tokenType == VAR {classVars = append(classVars, p.varAssignment())}
+            if p.peek(0).tokenType == FUNC {classFunc = append(classFunc, p.funcInit())}
+            if p.peek(0).tokenType == TYPEDEF {classTypes = append(classTypes, p.typeDef())}
+        }
+        p.advance()
+        return &NodeStmtClass{Name: className, Vars: classVars, Func: classFunc, TypeDef: classTypes}
+    }
+    PrintError(8, "Reached precocious End Of File in class body")
     panic("")
 }

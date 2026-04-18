@@ -1,6 +1,12 @@
-typedef string text;
+class BankAccount {
+	typedef string text;
+
+	func string chara() {
+		var text characters = "Hey, ";
+    	return characters << "It works!";
+	}
+}
 
 func int main() {
-	var text characters = "";
-    print characters << "It works";
+	print BankAccount.chara()
 }

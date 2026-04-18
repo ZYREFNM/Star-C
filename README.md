@@ -16,8 +16,8 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
     Advanced bank account representation
     ``` go
     class BankAccount {
-        pub var string accountName;
-        prv {
+        public var string accountName;
+        private {
             var boolean accessible = true;
             var <get, set> float64 money {
                 get() <- this;
