@@ -68,6 +68,7 @@ var keywords = map[string]TokenType{
     "this":THIS,
     "true":TRUE,
     "typedef":TYPEDEF,
+    "void": VOID,
     "var":VAR,
     "while":WHILE,
     "whith":WITH,

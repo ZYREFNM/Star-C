@@ -146,6 +146,7 @@ const (
     THIS
     TRUE
     TYPEDEF
+    VOID
     VAR
     WHILE
     WITH

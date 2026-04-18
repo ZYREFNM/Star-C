@@ -1,3 +1,6 @@
-func int main() {
-	print "Hello world";
-}
+class Hello {
+	var string hello;
+	func void Print(string text) {
+    	print text;
+    }
+}    

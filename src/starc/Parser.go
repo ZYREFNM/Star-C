@@ -1,7 +1,7 @@
 package main
 
 import (
-    //"fmt"
+    "fmt"
 )
 
 type Parser struct {
@@ -327,6 +327,8 @@ func (p *Parser) funcInit() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
         returnType := p.advance().Lexeme
+        if !p.envi.hasType(returnType) && p.peek(-1).tokenType != VOID {PrintError(7, "Unknown return type"); panic("")}
+        fmt.Println(p.peek(0))
         if p.peek(0).tokenType != IDENTIFIER {PrintError(5, "Expected identifier"); panic("")}
         funcName := p.advance().Lexeme
         if p.peek(1).tokenType != RIGHT_PAREN {

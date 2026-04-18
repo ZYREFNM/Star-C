@@ -128,7 +128,7 @@ func (t *Transpiler) Translate(node Node) string {
                 classTypes += "	" + t.Translate(e) + "\n"
             }
             for _, e := range n.Func {
-                classFuncs += "	" + t.Translate(e) + "\n"
+                classFuncs += "" + t.Translate(e) + "\n"
             }
             return fmt.Sprintf("typedef struct {\n%s\n} %s;\n%s\n%s", classVars, className, classTypes, classFuncs)
         

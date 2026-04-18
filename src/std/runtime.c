@@ -11,6 +11,6 @@ char* star_concat(char* to, char* from) {
         strcpy(result, to);
         strcat(result, from);
     }
-    free(result)
+    free(result);
     return result;
 }
