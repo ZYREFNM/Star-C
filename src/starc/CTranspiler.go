@@ -4,6 +4,7 @@ import (
 	"fmt"
     "os"
     "strings"
+    "slices"
 )
 
 type Transpiler struct {
@@ -128,6 +129,7 @@ func (t *Transpiler) Translate(node Node) string {
                 classTypes += "	" + t.Translate(e) + "\n"
             }
             for _, e := range n.Func {
+                e.Param = slices.Insert(e.Param, 1, fmt.Sprintf("%s* this"))
                 classFuncs += "" + t.Translate(e) + "\n"
             }
             return fmt.Sprintf("typedef struct {\n%s\n} %s;\n%s\n%s", classVars, className, classTypes, classFuncs)
