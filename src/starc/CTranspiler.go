@@ -18,6 +18,12 @@ func (t *Transpiler) WriteInFile(code string) {
 func (t *Transpiler) matchType(Type string) string {
     switch Type {
         case "string": return "char*"
+        case "int8": return "int8_t"
+        case "int16": return "int16_t"
+        case "int32": return "int32_t"
+        case "int64": return "int64_t"
+        case "float32": return "float"
+        case "float64": return "double"
         default: return Type
     }
 }
@@ -117,7 +123,7 @@ func (t *Transpiler) Translate(node Node) string {
 
 func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
-    CBuilder.WriteString("#include <stdio.h>\n#include \"src/std/runtime.h\"\n\n")
+    CBuilder.WriteString("#include <stdio.h>\n#include <stdint.h>\n#include \"src/std/runtime.h\"\n\n")
     var mainContents string
     for _, node := range nodes {
         line := t.Translate(node)
