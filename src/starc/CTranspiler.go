@@ -95,6 +95,22 @@ func (t *Transpiler) Translate(node Node) string {
                 argsList = append(argsList, t.Translate(arg))
             }
         	return fmt.Sprintf("%s(%s)", n.Name, strings.Join(argsList, ", "))
+            
+        case *NodeStmtTypeDef:
+        	typeData := n.Type
+            typeName := n.Name
+            code := ""
+            var Type string = t.matchType(typeData.Lexeme)
+            if typeData.tokenType == STRUCT {
+                code += " {\n"
+                for _, init := range n.Vars {
+                    code += "	" + t.Translate(init) + "\n"
+                }
+                code += "}"
+                Type = "struct"
+            }
+        	return fmt.Sprintf("typedef %s%s %s;\n", Type, code, typeName)
+            
         default: return ""
     }
 }

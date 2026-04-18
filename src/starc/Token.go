@@ -1,10 +1,5 @@
 package main
 
-import (
-)
-
-
-
 type TokenType int
 
 type Token struct {
@@ -36,6 +31,10 @@ func (t TokenType) isBoolOperator() bool {
 
 func (t TokenType) isAssignOperator() bool {
     return t == EQUAL || t >= PLUS_EQUAL && t <= SLASH_EQUAL
+}
+
+func (t TokenType) isModifier() bool {
+    return t >= PUBLIC && t <= SET
 }
 
 const (
@@ -125,8 +124,8 @@ const (
     //Keywords
     AND
     BREAK
-    CLASS
     CONST
+    CLASS
     DEFAULT
     ELSE
     FALSE
@@ -134,23 +133,28 @@ const (
     FOR
     GOTO
     IF
-    INNER
     NOT
     NULL
     OR
     OPTIONAL
     PACKAGE
     PRINT
-    PUBLIC
-    PRIVATE
     RETURN
     SUPER
+    STRUCT
     SWITCH
     THIS
     TRUE
+    TYPEDEF
     VAR
     WHILE
     WITH
+    
+    // Modifiers' key-words
+    PUBLIC
+    PRIVATE
+    GET
+    SET
     
     EOF
 )

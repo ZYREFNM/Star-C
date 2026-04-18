@@ -1,4 +1,6 @@
+typedef string text;
+
 func int main() {
-	var string starc = "this is Star-C!";
-	print "Hello ", "world" << ", " << starc;
+	var text characters = "";
+    print characters << "It works";
 }

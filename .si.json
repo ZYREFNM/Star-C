@@ -14,9 +14,9 @@
       "enabled": true,
       "run": "gopls"
     },
-    ".sc": {
+    ".starc": {
       "enabled": true,
-      "run": "metals"
+      "run": "gopls"
     },
     ".md": {
       "enabled": true,

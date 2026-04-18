@@ -19,22 +19,21 @@ var filePath string
 func main() {
     log.SetFlags(0);
     log.SetPrefix(">");
-    // We take commands and flags
     
     fmt.Println(fmt.Sprintf("%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
     hadImplementsError = false
     if len(os.Args) > 4 {
-        PrintError(1)
+        PrintError(1, "Try to run command like this 'starc [flag] <input>'")
     }else if len(os.Args) == 2{
         fmt.Println("Updated")
     }else if len(os.Args) >= 3 {
         if len(os.Args) < 4 {
             runCommand(filePath)
-            PrintError(0)
+            PrintError(0, "")
         }
         filePath = os.Args[len(os.Args)-1]
         if !strings.HasSuffix(filePath, ".starc") {
-            PrintError(2)
+            PrintError(2, "Try to run a .starc file")
         }
         runCommand(filePath)
     }
@@ -52,39 +51,36 @@ func getError(id uint8) (uint8, error) {
         message = ""
     }
     switch id {
-        case 0: message += "Process Runned Successfully"; hadImplementsError = true; break;
-        case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command\nThe correct command's format is...\n'starc <action> <input>'", "Current args are", os.Args); hadImplementsError = true; break
-        case 2: message += "File type unsupported...\nPlease try again with a '.starc' file format ...\nexemple: file.starc"; hadImplementsError = true; break
-        case 3: message += fmt.Sprintf("%s %s <%s>", "Unrecognized", char, input); hadRuntimeError = true; break
-        case 4: message += "File path invalid... Retry with a working path"; hadImplementsError = true; break
+        case 0: message += "Process Runned Successfully."; break;
+        case 1: message += fmt.Sprintf("%s\n%s: %v", "Empty Fields or Unrecognized Command.\n"); hadImplementsError = true; break
+        case 2: message += "File type unsupported..."; hadImplementsError = true; break
+        case 3: message += fmt.Sprintf("Unrecognized %s <%s>", char, input); hadRuntimeError = true; break
+        case 4: message += "File path invalid... Retry with a working path."; hadImplementsError = true; break
         case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break
         case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
         case 7: message += fmt.Sprintf("Unknown type or object <%s> of type <%v> at:%d", input, tokType, wordTracker); hadCompileError = true; break
-        case 8: message += "Missing semi-colon"; hadCompileError = true; break
+        case 8: message += "Missing character"; hadCompileError = true; break
         case 9: message += "Expected value after statement"; hadCompileError = true; break
     }
     message += ";\n"
     if hadCompileError || hadRuntimeError && !hadImplementsError {
         message += fmt.Sprintf("%s %v at:%v", "Error took place in", where, lineTracker);
-    } else if hadImplementsError {
-        goto end
-    }
-    
-    end:
+    } 
     err := errors.New(message);
     return id, err;
 }
 
-func PrintError(err uint8) {
+func PrintError(err uint8, hint string) {
     id, errMsg := getError(err);
     fmt.Println(errMsg)
+    fmt.Println("Hint: ", hint, ".")
     os.Exit(int(id))
 }
 
 func runFile(path string) string {
     var bytes, err = os.ReadFile(path);
     if err != nil {
-        PrintError(4)
+        PrintError(4, "Check your file's path and if it's correct")
     }
     
     if hadCompileError {
@@ -99,7 +95,7 @@ func runFile(path string) string {
 func ignite(source string) {
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
-    var parser Parser = Parser{tokens: tokens, current: 0}
+    var parser Parser = Parser{tokens: tokens, current: 0, customTypes: make(map[string]bool)}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
@@ -127,6 +123,6 @@ func runCommand(arg string) {
         case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:
         	fmt.Println(command)
-        	PrintError(1);
+        	PrintError(1, "Try to run command like this 'starc [flag] <input>'");
     }
 }

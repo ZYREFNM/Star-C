@@ -21,6 +21,11 @@ func (n *NodeStmtExpr) isANode() {}
 func (n *NodeStmtExpr) isStmt() {}
 
 
+type NodeModifier struct {
+    Modifier Node
+}
+func (n *NodeModifier) isANode() {}
+
 type NodeBinary struct {
     Left Node
     Operator string
@@ -58,6 +63,13 @@ type NodeExprConcat struct {
 }
 func (n *NodeExprConcat) isANode() {}
 func (n *NodeExprConcat) isExpr() {}
+
+type NodeType struct {
+    Type string
+}
+func (n *NodeType) isANode() {}
+func (n *NodeType) isExpr() {}
+
 
 type NodeVariable struct {
     Name string
@@ -135,3 +147,12 @@ type NodeExprFuncCall struct {
 }
 func (n *NodeExprFuncCall) isANode() {}
 func (n *NodeExprFuncCall) isExpr() {}
+
+
+type NodeStmtTypeDef struct {
+    Type Token
+    Name string
+    Vars []NodeStmt
+}
+func (n *NodeStmtTypeDef) isANode() {}
+func (n *NodeStmtTypeDef) isStmt() {}

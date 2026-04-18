@@ -2,12 +2,12 @@ package main
 
 import (
     "fmt"
-    //"strconv"
 )
 
 type Parser struct {
     tokens []Token
     current int
+    customTypes map[string]bool
 }
 
 func (p *Parser) Parse() []Node {
@@ -34,6 +34,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     if token.tokenType == RETURN {return p.returnStmt()}
     if token.tokenType == WHILE {return p.whileStmt()}
     if token.tokenType == FUNC {return p.funcInit()}
+    if token.tokenType == TYPEDEF {return p.typeDef()}
     
     if token.tokenType == SEMICOLON {
         p.advance()
@@ -55,7 +56,6 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() Token {
     if !p.isAtEnd() {p.current++}
-    //fmt.Println("[", p.peek(0), "]")
     return p.tokens[p.current - 1]
 }
 
@@ -75,7 +75,7 @@ func (p *Parser) primary() NodeExpr {
     if token.tokenType == LEFT_PAREN {
         expr := p.grouping()
         if p.peek(0).tokenType != RIGHT_PAREN && p.isAtEnd() {
-            PrintError(5)
+            PrintError(8, "Expected ) before End Of File")
         } else {
             p.advance()
             return &NodeGroup{Expression: expr}
@@ -89,7 +89,7 @@ func (p *Parser) primary() NodeExpr {
         return &NodeLiteral{Value: token.Lexeme}
     }
     
-    PrintError(5)
+    PrintError(5, "May be due to unknown characters")
     panic("")
 }
 
@@ -174,10 +174,11 @@ func (p *Parser) varAssignment() NodeStmt {
     
     if !p.isAtEnd() {
         p.advance()
-        if !p.peek(0).tokenType.isType() { PrintError(7); panic("") }
+        if !p.peek(0).tokenType.isType() && !p.customTypes[p.peek(0).Lexeme] { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
+        
         varType := p.advance()
         fmt.Println("Var Type: ", varType)
-        if p.peek(0).tokenType != IDENTIFIER { PrintError(3); panic("") }
+        if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
         fmt.Println("Var Name: ", varName)
         
@@ -191,7 +192,7 @@ func (p *Parser) varAssignment() NodeStmt {
             return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
         }
     }
-    PrintError(8)
+    PrintError(8, "Reached End Of File in an invalid variable declaration")
     panic("")
 }
 
@@ -209,7 +210,7 @@ func (p *Parser) returnStmt() NodeStmt {
         }
         
     }
-    PrintError(8)
+    PrintError(8, "Missing semi-colon ';'")
     panic("")
 }
 
@@ -226,7 +227,7 @@ func (p *Parser) printStmt() NodeStmt {
         }
         return &NodeStmtPrint{Expressions : valList}
     }
-    PrintError(6)
+    PrintError(6, "Unknown litteral or EOF to print")
     panic("")
 }
 
@@ -241,7 +242,7 @@ func (p *Parser) blockStmt() NodeStmt {
         p.advance()
         return &NodeBlock{Instructions: stmts}
     }
-    PrintError(6)
+    PrintError(6, "Missing }")
     panic("")
 }
 
@@ -251,10 +252,10 @@ func (p *Parser) assignement() NodeStmt {
         varName := p.advance().Lexeme
         p.advance()
         varVal := p.expression()
-        if p.peek(0).tokenType != SEMICOLON {PrintError(8); panic("")}
+        if p.peek(0).tokenType != SEMICOLON {PrintError(8, "Missing semi-colon ;"); panic("")}
         return &NodeAssignement{Name: varName, Value: varVal}
     }
-    PrintError(6)
+    PrintError(6, "Variable assignment reached End Of File")
     panic("")
 }
 
@@ -265,7 +266,7 @@ func (p *Parser) ifStmt() NodeStmt {
         p.advance()
         if p.peek(0).tokenType == LEFT_PAREN {p.advance();}
         condition = p.comparison()
-        if p.peek(0).tokenType != RIGHT_PAREN {PrintError(5); panic("")}
+        if p.peek(0).tokenType != RIGHT_PAREN {PrintError(5, "Expected right parenthesize"); panic("")}
         p.advance()
         if p.peek(0).tokenType == LEFT_BRACE {
             result = p.blockStmt()
@@ -274,7 +275,7 @@ func (p *Parser) ifStmt() NodeStmt {
         }
         return &NodeStmtIf{Condition: condition, Result: result}
     }
-    PrintError(5)
+    PrintError(5, "Invalid if statement")
     panic("")
 }
 
@@ -285,7 +286,7 @@ func (p *Parser) whileStmt() NodeStmt {
         p.advance()
         if p.peek(0).tokenType == LEFT_PAREN {p.advance();}
         condition = p.comparison()
-        if p.peek(0).tokenType != RIGHT_PAREN {PrintError(5); panic("")}
+        if p.peek(0).tokenType != RIGHT_PAREN {PrintError(5, "Expected right parenthesize )"); panic("")}
         p.advance()
         if p.peek(0).tokenType == LEFT_BRACE {
             result = p.blockStmt()
@@ -294,7 +295,7 @@ func (p *Parser) whileStmt() NodeStmt {
         }
         return &NodeStmtWhile{Condition: condition, Result: result}
     }
-    PrintError(5)
+    PrintError(5, "Invalid while statement")
     panic("")
 }
 
@@ -303,9 +304,9 @@ func (p *Parser) parseParam() NodeStmt {
     
     if !p.isAtEnd() {
         p.advance()
-        if !p.peek(0).tokenType.isType() { PrintError(7); panic("") }
+        if !p.peek(0).tokenType.isType() { PrintError(7, "Unknown type, you may check if you typedefed that type or created that new class"); panic("") }
         paramType := p.advance()
-        if p.peek(0).tokenType != IDENTIFIER { PrintError(3); panic("") }
+        if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected identifier"); panic("") }
         paramName := p.advance().Lexeme
         
         if p.peek(0).tokenType == COMMA {
@@ -316,7 +317,7 @@ func (p *Parser) parseParam() NodeStmt {
             return &NodeStmtVar{Name: paramName, Type: paramType, Value: paramVal}
         }
     }
-    PrintError(8)
+    PrintError(8, "Missing right parenthesize )")
     panic("")
 }
 
@@ -325,20 +326,19 @@ func (p *Parser) funcInit() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
         returnType := p.advance().Lexeme
-        if p.peek(0).tokenType != IDENTIFIER {PrintError(5); panic("")}
+        if p.peek(0).tokenType != IDENTIFIER {PrintError(5, "Expected identifier"); panic("")}
         funcName := p.advance().Lexeme
         if p.peek(1).tokenType != RIGHT_PAREN {
-            //fmt.Println(funcName)
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
             }
             p.advance()
         } else {p.advance(); p.advance()}
-        if p.peek(0).tokenType != LEFT_BRACE {fmt.Println(funcName); PrintError(6); panic("")}
+        if p.peek(0).tokenType != LEFT_BRACE {fmt.Println(funcName); PrintError(6, "Missing left brace"); panic("")}
         code := p.blockStmt()
         return &NodeStmtFuncInit{Return: returnType, Name: funcName, Param: paramList, Code: code}
     }
-    PrintError(7)
+    PrintError(8, "Invalid function def statement")
     panic("")
 }
 
@@ -348,15 +348,40 @@ func (p *Parser) funcCall() NodeExpr {
         funcName := p.peek(-1).Lexeme
         p.advance()
         for p.peek(0).tokenType != RIGHT_PAREN {
-            //fmt.Println("Commencement ", p.peek(0))
             arg := p.expression()
-            //fmt.Println("L'expression: ", arg)
             argsList = append(argsList, arg)
-            //fmt.Println("Fin ", p.peek(0))
         }
         p.advance()
         return &NodeExprFuncCall{Name: funcName, Args: argsList}
     }
-    PrintError(5)
+    PrintError(5, "Invalid function call")
+    panic("")
+}
+
+func (p *Parser) typeDef() NodeStmt {
+    if !p.isAtEnd() {
+        p.advance()
+        var typeData Token = p.advance()
+        var typeName string = p.advance().Lexeme
+        p.customTypes[typeName] = true
+        var typeVars []NodeStmt = nil
+        if typeData.tokenType == STRUCT {
+            fmt.Println("Ici ", p.peek(0))
+            p.advance()
+            for p.peek(0).tokenType != RIGHT_BRACE {
+                fmt.Println("On suit ", p.peek(0))
+                typeVars = append(typeVars, p.varAssignment())
+                fmt.Println("On suit 2 ", p.peek(0))
+            }
+            p.advance()
+        } else {
+            fmt.Println("Là ", p.peek(0))
+            if p.peek(0).tokenType != SEMICOLON {PrintError(5, "Missing semi-colon ;"); panic("")}
+        }
+        fmt.Println("on a une struct")
+        return &NodeStmtTypeDef{Type: typeData, Name: typeName, Vars: typeVars}
+    }
+    fmt.Println("On a un problème")
+    PrintError(5, "Invalid typedef")
     panic("")
 }

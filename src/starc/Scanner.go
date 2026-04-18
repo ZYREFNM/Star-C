@@ -13,10 +13,10 @@ type Scanner struct {
 }
 
 var dataType = map[string]TokenType{
-	"array": ARRAY_TYPE,
-	"dict": DICTIONARY_TYPE,
-	"int": INT_TYPE,
-	"int8": INT8_TYPE,
+	"array":ARRAY_TYPE,
+	"dict":DICTIONARY_TYPE,
+	"int":INT_TYPE,
+	"int8":INT8_TYPE,
 	"int16":INT16_TYPE,
 	"int32":INT32_TYPE,
 	"int64":INT64_TYPE,
@@ -37,35 +37,39 @@ var dataType = map[string]TokenType{
 	"ufloat64":UFLOAT64_TYPE,
 	"string":STRING_TYPE,
 }
+
 var keywords = map[string]TokenType{
-    "and": AND,
-    "break": BREAK,
-    "class": CLASS,
-    "const": CONST,
-    "default": DEFAULT,
-    "else": ELSE,
-    "false": FALSE,
-    "func": FUNC,
-    "for": FOR,
-    "goto": GOTO,
-    "if": IF,
-    "inner": INNER,
-    "not": NOT,
-    "null": NULL,
-    "or": OR,
-    "optional": OPTIONAL,
-    "package": PACKAGE,
-    "print": PRINT,
-    "pub": PUBLIC,
-    "prv": PRIVATE,
-    "return": RETURN,
-    "super": SUPER,
-    "switch": SWITCH,
-    "this": THIS,
-    "true": TRUE,
-    "var": VAR,
-    "while": WHILE,
-    "whith": WITH,
+    "and":AND,
+    "break":BREAK,
+    "class":CLASS,
+    "const":CONST,
+    "default":DEFAULT,
+    "else":ELSE,
+    "false":FALSE,
+    "func":FUNC,
+    "for":FOR,
+    "get":GET,
+    "goto":GOTO,
+    "if":IF,
+    "not":NOT,
+    "null":NULL,
+    "or":OR,
+    "optional":OPTIONAL,
+    "package":PACKAGE,
+    "print":PRINT,
+    "pub":PUBLIC,
+    "prv":PRIVATE,
+    "return":RETURN,
+    "set":SET,
+    "super":SUPER,
+	"struct":STRUCT,
+    "switch":SWITCH,
+    "this":THIS,
+    "true":TRUE,
+    "typedef":TYPEDEF,
+    "var":VAR,
+    "while":WHILE,
+    "whith":WITH,
 }
 
 func (s *Scanner) ScanTokens() []Token {
@@ -181,7 +185,7 @@ func (s *Scanner) scanToken() {
             for {
             	s.advance()
         		if s.isAtEnd() {
-                	PrintError(3)
+                	PrintError(3, "May be due to a symbol that got in a contexte where it shouldn't be")
                 	return
                 }
             }
@@ -297,7 +301,7 @@ func (s *Scanner) stringify() {
         s.advance();
     }
     if s.isAtEnd() {
-        PrintError(2);
+        PrintError(8, "Missing \" on a string and reached EOF");
     }
     s.advance();
     
