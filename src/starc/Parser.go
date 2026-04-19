@@ -60,6 +60,10 @@ func (p *Parser) advance() Token {
     return p.tokens[p.current - 1]
 }
 
+func (p *Parser) isValidType(Type Token) bool {
+    return Type.tokenType.isType() || p.envi.hasType(Type.Lexeme)
+}
+
 // Next following are the nodes’ recursion
 
 func (p *Parser) primary() NodeExpr {
@@ -326,11 +330,14 @@ func (p *Parser) funcInit() NodeStmt {
     var paramList []NodeStmt = nil
     if !p.isAtEnd() {
         p.advance()
-        returnType := p.advance().Lexeme
-        if !p.envi.hasType(returnType) && p.peek(-1).tokenType != VOID {PrintError(7, "Unknown return type"); panic("")}
+        fmt.Println(p.peek(0))
+        returnType := p.advance()
+        fmt.Println(returnType.Lexeme, " is returned")
+        if !p.isValidType(returnType) && p.peek(-1).tokenType != VOID {PrintError(7, fmt.Sprintf("Unknown return type <%s>", returnType.Lexeme)); panic("")}
         fmt.Println(p.peek(0))
         if p.peek(0).tokenType != IDENTIFIER {PrintError(5, "Expected identifier"); panic("")}
         funcName := p.advance().Lexeme
+        fmt.Println(funcName)
         if p.peek(1).tokenType != RIGHT_PAREN {
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
@@ -339,7 +346,7 @@ func (p *Parser) funcInit() NodeStmt {
         } else {p.advance(); p.advance()}
         if p.peek(0).tokenType != LEFT_BRACE {PrintError(6, "Missing left brace"); panic("")}
         code := p.blockStmt()
-        return &NodeStmtFuncInit{Return: returnType, Name: funcName, Param: paramList, Code: code}
+        return &NodeStmtFuncInit{Return: returnType.Lexeme, Name: funcName, Param: paramList, Code: code}
     }
     PrintError(8, "Invalid function def statement")
     panic("")
@@ -403,6 +410,7 @@ func (p *Parser) classDef() NodeStmt {
             if p.peek(0).tokenType == TYPEDEF {classTypes = append(classTypes, p.typeDef())}
         }
         p.advance()
+        fmt.Println("Fim ", p.peek(0))
         return &NodeStmtClass{Name: className, Vars: classVars, Func: classFunc, TypeDef: classTypes}
     }
     PrintError(8, "Reached precocious End Of File in class body")

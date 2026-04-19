@@ -1,6 +1,6 @@
-class Hello {
-	var string hello;
-	func void Print(string text) {
-    	print text;
+class Bank {
+	var float64 money;
+	func float64 getMoney() {
+    	return money;
     }
-}    
+}

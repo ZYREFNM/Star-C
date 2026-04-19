@@ -4,11 +4,12 @@ import (
 	"fmt"
     "os"
     "strings"
-    "slices"
+    //"slices"
 )
 
 type Transpiler struct {
     fileName string
+    currentClass string
 }
 
 func (t *Transpiler) WriteInFile(code string) {
@@ -88,6 +89,9 @@ func (t *Transpiler) Translate(node Node) string {
             
         case *NodeStmtFuncInit:
         	var list []string
+            if t.currentClass != "" {
+                list = append(list, fmt.Sprintf("%s* this", t.currentClass))
+            }
         	for _, p := range n.Param {
                 param := t.Translate(p)
                 param = strings.TrimSuffix(param, ";")
@@ -119,6 +123,7 @@ func (t *Transpiler) Translate(node Node) string {
         	return fmt.Sprintf("typedef %s%s %s\n", Type, code, typeName)
         case *NodeStmtClass:
         	className := n.Name
+            t.currentClass = className
             var classTypes string
             var classVars string
             var classFuncs string
@@ -129,10 +134,10 @@ func (t *Transpiler) Translate(node Node) string {
                 classTypes += "	" + t.Translate(e) + "\n"
             }
             for _, e := range n.Func {
-                e.Param = slices.Insert(e.Param, 1, fmt.Sprintf("%s* this"))
-                classFuncs += "" + t.Translate(e) + "\n"
+                classFuncs += t.Translate(e) + "\n"
             }
-            return fmt.Sprintf("typedef struct {\n%s\n} %s;\n%s\n%s", classVars, className, classTypes, classFuncs)
+            t.currentClass = ""
+            return fmt.Sprintf("typedef struct {\n%s} %s;\n%s\n%s", classVars, className, classTypes, classFuncs)
         
         default: return ""
     }
