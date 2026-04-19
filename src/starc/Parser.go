@@ -72,10 +72,22 @@ func (p *Parser) primary() NodeExpr {
     if token.tokenType.isDigit() {
         return &NodeLiteral{Value: token.Lexeme}
     }
-    
-    if token.tokenType == IDENTIFIER {
-        if p.peek(0).tokenType == LEFT_PAREN {return p.funcCall()}
-        return &NodeVariable{Name: token.Lexeme}
+    if token.tokenType == IDENTIFIER || token.tokenType == THIS {
+        var expr NodeExpr
+        
+        if token.tokenType == THIS {
+        expr = &NodeVariable{Name: "this"}
+        } else if p.peek(0).tokenType == LEFT_PAREN {
+            expr = p.funcCall()
+        } else {
+            expr = &NodeVariable{Name: token.Lexeme}
+        }
+        for p.peek(0).tokenType == DOT {
+            p.advance()
+            field := p.advance().Lexeme
+            expr = &NodeGet{Object: expr, Field: field}
+        }
+        return expr
     }
     if token.tokenType == LEFT_PAREN {
         expr := p.grouping()
@@ -403,6 +415,7 @@ func (p *Parser) classDef() NodeStmt {
         p.advance()
         className := p.advance().Lexeme
         if p.envi.hasType(className) {PrintError(10, "Class declared twice in the same context"); panic("")}
+        p.envi.Type[className] = ""
         if p.advance().tokenType != LEFT_BRACE {PrintError(8, "Expected left brace {"); panic("")}
         for p.peek(0).tokenType != RIGHT_BRACE {
             if p.peek(0).tokenType == VAR {classVars = append(classVars, p.varAssignment())}

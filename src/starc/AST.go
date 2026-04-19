@@ -26,6 +26,14 @@ type NodeModifier struct {
 }
 func (n *NodeModifier) isANode() {}
 
+type NodeGet struct {
+    Object Node
+    Field string
+}
+func (n *NodeGet) isANode() {}
+func (n *NodeGet) isExpr() {}
+
+
 type NodeBinary struct {
     Left Node
     Operator string

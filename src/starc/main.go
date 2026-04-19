@@ -12,6 +12,7 @@ import (
 var hadCompileError, hadRuntimeError,  hadImplementsError bool = false, false, false
 var input string
 var lineTracker int
+var errounousLine int
 var tokType TokenType
 var wordTracker int
 var filePath string
@@ -41,8 +42,7 @@ func main() {
 }
 
 func getError(id uint8) (uint8, error) {
-    var message string = "";
-    var where string = filePath;
+    var message string = "\n";
     
     message += fmt.Sprintf("%s <id: %d>': ", "Unexpected 'Error", id);
     var char string = "characters";
@@ -63,17 +63,19 @@ func getError(id uint8) (uint8, error) {
         case 9: message += "Expected value after statement"; hadCompileError = true; break
         case 10: message += fmt.Sprintf("Object %s already exist in current scope or context", input)
     }
-    message += ";\n"
-    if hadCompileError || hadRuntimeError && !hadImplementsError {
-        message += fmt.Sprintf("%s %v at:%v", "Error took place in", where, lineTracker);
-    } 
+    message += "\n"
     err := errors.New(message);
     return id, err;
 }
 
 func PrintError(err uint8, hint string) {
+    errounousLine = lineTracker
+    var where string = filePath;
     id, errMsg := getError(err);
     fmt.Println(errMsg)
+    if hadCompileError || hadRuntimeError && !hadImplementsError {
+        fmt.Println(fmt.Sprintf("Error took place in %v at line:%v", where, errounousLine))
+    }
     fmt.Println("Hint: ", hint, ".")
     os.Exit(int(id))
 }

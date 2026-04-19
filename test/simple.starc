@@ -1,6 +1,11 @@
 class Bank {
-	var float64 money;
-	func float64 getMoney() {
-    	return money;
+	var string money;
+	func void Money() {
+    	print this.money;
     }
+}
+
+func int main() {
+	var Bank bank;
+	return 0;
 }
