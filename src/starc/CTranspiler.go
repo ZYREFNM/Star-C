@@ -45,7 +45,11 @@ func (t *Transpiler) Translate(node Node) string {
             
         case *NodeGroup: return fmt.Sprintf("(%s)", t.Translate(n.Expression))
         
-        case *NodeGet: return fmt.Sprintf("%s->%s", t.Translate(n.Object), n.Field)
+        case *NodeGet:
+        	symbol := "."
+            target := t.Translate(n.Object)
+        	if target == "this" {symbol = "->"}
+            return fmt.Sprintf("%s%s%s", target, symbol, n.Field)
         
         case *NodeStmtVar:
         	Type := t.matchType(n.Type.Lexeme)
@@ -53,7 +57,7 @@ func (t *Transpiler) Translate(node Node) string {
             if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.Translate(n.Value))}
         	return fmt.Sprintf("%s %s%s", Type, n.Name, varEnd)
             
-        case *NodeAssignement: return fmt.Sprintf("%s = %s;", n.Name, t.Translate(n.Value))
+        case *NodeAssignment: return fmt.Sprintf("%s = %s;", t.Translate(n.Target), t.Translate(n.Value))
         
         case *NodeVariable: return n.Name
         

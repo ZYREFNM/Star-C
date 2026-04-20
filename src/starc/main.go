@@ -98,13 +98,13 @@ func runFile(path string) string {
 func ignite(source string) {
     var scanner Scanner = Scanner{source: source, line: 1}
     var tokens []Token = scanner.ScanTokens()
+    lineTracker = scanner.line
+    input = scanner.input
     var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]any)}}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
     }
-    lineTracker = scanner.line
-    input = scanner.input
     nodes := parser.Parse()
     var transpiler Transpiler = Transpiler{fileName: "simple"}
     transpiler.GenerateCCode(nodes)

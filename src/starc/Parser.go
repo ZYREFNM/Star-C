@@ -1,7 +1,7 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 )
 
 type Parser struct {
@@ -27,7 +27,16 @@ func (p *Parser) ParseStmt() NodeStmt {
     
     if p.isAtEnd() {return nil}
     
-    if token.tokenType == IDENTIFIER && p.peek(1).tokenType == EQUAL {return p.assignement()}
+    fmt.Println(token, " and ", p.peek(1))
+    if token.tokenType == IDENTIFIER {
+        expr := p.expression()
+        if p.peek(0).tokenType == EQUAL {
+            p.advance()
+            value := p.expression()
+            return &NodeAssignment{Target: expr, Value: value}
+        }
+        return &NodeStmtExpr{Expr: expr}
+    }
     if token.tokenType == IF {return p.ifStmt()}
     if token.tokenType == VAR {return p.varAssignment()}
     if token.tokenType == PRINT {return p.printStmt()}
@@ -85,7 +94,12 @@ func (p *Parser) primary() NodeExpr {
         for p.peek(0).tokenType == DOT {
             p.advance()
             field := p.advance().Lexeme
-            expr = &NodeGet{Object: expr, Field: field}
+            
+            if p.peek(0).tokenType == LEFT_PAREN {
+            	return p.funcCall()
+            } else {
+                expr = &NodeGet{Object: expr, Field: field}
+            }    
         }
         return expr
     }
@@ -266,11 +280,11 @@ func (p *Parser) blockStmt() NodeStmt {
 func (p *Parser) assignement() NodeStmt {
     
     if !p.isAtEnd() {
-        varName := p.advance().Lexeme
+        target := p.expression()
         p.advance()
-        varVal := p.expression()
+        value := p.expression()
         if p.peek(0).tokenType != SEMICOLON {PrintError(8, "Missing semi-colon ;"); panic("")}
-        return &NodeAssignement{Name: varName, Value: varVal}
+        return &NodeAssignment{Target: target, Value: value}
     }
     PrintError(6, "Variable assignment reached End Of File")
     panic("")
@@ -342,14 +356,10 @@ func (p *Parser) funcInit() NodeStmt {
     var paramList []NodeStmt = nil
     if !p.isAtEnd() {
         p.advance()
-        fmt.Println(p.peek(0))
         returnType := p.advance()
-        fmt.Println(returnType.Lexeme, " is returned")
         if !p.isValidType(returnType) && p.peek(-1).tokenType != VOID {PrintError(7, fmt.Sprintf("Unknown return type <%s>", returnType.Lexeme)); panic("")}
-        fmt.Println(p.peek(0))
         if p.peek(0).tokenType != IDENTIFIER {PrintError(5, "Expected identifier"); panic("")}
         funcName := p.advance().Lexeme
-        fmt.Println(funcName)
         if p.peek(1).tokenType != RIGHT_PAREN {
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
@@ -423,7 +433,6 @@ func (p *Parser) classDef() NodeStmt {
             if p.peek(0).tokenType == TYPEDEF {classTypes = append(classTypes, p.typeDef())}
         }
         p.advance()
-        fmt.Println("Fim ", p.peek(0))
         return &NodeStmtClass{Name: className, Vars: classVars, Func: classFunc, TypeDef: classTypes}
     }
     PrintError(8, "Reached precocious End Of File in class body")

@@ -1,11 +1,14 @@
-class Bank {
-	var string money;
-	func void Money() {
-    	print this.money;
+class Printer {
+	var string text;
+	func void Print() {
+    	print this.text;
     }
 }
 
 func int main() {
-	var Bank bank;
+	var Printer printer;
+    printer.text = "quelque chose";
+    Print(printer.text);
+    printer.Print();
 	return 0;
 }

@@ -37,6 +37,10 @@ func (t TokenType) isModifier() bool {
     return t >= PUBLIC && t <= SET
 }
 
+func (t TokenType) isVarMod() bool {
+    return t >= GET && t <= SET
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota

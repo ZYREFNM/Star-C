@@ -25,8 +25,8 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
             }
         }
         
-        func BankAccount new(boolean accessible, float money) {
-            this.accessible = accessible;
+        func BankAccount new(float money) {
+            this.accessible = true;
             this.money = money;
         }
         

@@ -34,6 +34,14 @@ func (n *NodeGet) isANode() {}
 func (n *NodeGet) isExpr() {}
 
 
+type NodeSet struct {
+    Target NodeExpr
+    Value NodeExpr
+}
+func (n *NodeSet) isANode() {}
+func (n *NodeSet) isExpr() {}
+
+
 type NodeBinary struct {
     Left Node
     Operator string
@@ -95,12 +103,12 @@ func (n *NodeStmtVar) isANode() {}
 func (n *NodeStmtVar) isStmt() {}
 
 
-type NodeAssignement struct {
-    Name string
-    Value Node
+type NodeAssignment struct {
+    Target NodeExpr
+    Value NodeExpr
 }
-func (n *NodeAssignement) isANode() {}
-func (n *NodeAssignement) isStmt() {}
+func (n *NodeAssignment) isANode() {}
+func (n *NodeAssignment) isStmt() {}
 
 
 type NodeBlock struct {
