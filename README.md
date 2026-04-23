@@ -36,13 +36,12 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
         func void deactivate() {
             this.accessible = false;
         }
-        
-        func int main() {
-            var Bank newBank = BankAccount.new();
-            newBank.activate();
-            if (newBank.money <= 0) {
-                newBank.deactivate();
-            }
-            return 0;
+    }
+    func int main() {
+    	var Bank newBank = BankAccount.new();
+    	newBank.activate();
+    	if (newBank.money <= 0) {
+        	newBank.deactivate();
         }
+    	return 0;
     }
