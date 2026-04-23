@@ -33,6 +33,9 @@ func (t *Transpiler) matchType(Type string) string {
 func (t *Transpiler) Translate(node Node) string {
     switch n := node.(type) {
         
+        case *NodeStmtExpr:
+        	return t.Translate(n.Expr) + ";"
+        
         case *NodeBinary:
         	return fmt.Sprintf("%s %s %s", t.Translate(n.Left), n.Operator, t.Translate(n.Right))
             
@@ -49,6 +52,7 @@ func (t *Transpiler) Translate(node Node) string {
         	symbol := "."
             target := t.Translate(n.Object)
         	if target == "this" {symbol = "->"}
+            fmt.Println(fmt.Sprintf("Getting -> %s %s %s", target, symbol, n.Field))
             return fmt.Sprintf("%s%s%s", target, symbol, n.Field)
         
         case *NodeStmtVar:
@@ -74,7 +78,7 @@ func (t *Transpiler) Translate(node Node) string {
             var format string
         	for _, expr := range n.Expressions {
                 list += fmt.Sprintf("%s, ", t.Translate(expr))
-                format += "%s"
+                format += "%d"
             }
             list = list[0:len(list)-2]
         	return fmt.Sprintf("printf(\"%s\\n\", %s);", format, list)
@@ -94,8 +98,10 @@ func (t *Transpiler) Translate(node Node) string {
             return fmt.Sprintf("while (%s) %s", condition, result)
             
         case *NodeStmtFuncInit:
+        	var funcName string = n.Name
         	var list []string
             if t.currentClass != "" {
+                funcName = t.currentClass + "_" + funcName
                 list = append(list, fmt.Sprintf("%s* this", t.currentClass))
             }
         	for _, p := range n.Param {
@@ -104,7 +110,7 @@ func (t *Transpiler) Translate(node Node) string {
                 list = append(list, param)
             }
             code := t.Translate(n.Code)
-        	return fmt.Sprintf("%s %s(%s) %s", t.matchType(n.Return), n.Name, strings.Join(list, ", "), code)
+        	return fmt.Sprintf("%s %s(%s) %s", t.matchType(n.Return), funcName, strings.Join(list, ", "), code)
             
         case *NodeExprFuncCall:
         	var argsList []string
@@ -112,6 +118,15 @@ func (t *Transpiler) Translate(node Node) string {
                 argsList = append(argsList, t.Translate(arg))
             }
         	return fmt.Sprintf("%s(%s)", n.Name, strings.Join(argsList, ", "))
+        
+        case *NodeExprMethodCall:
+        	var argsList []string
+            var multiargs string
+            for _, arg := range n.Args {
+                multiargs = ", "
+                argsList = append(argsList, t.Translate(arg))
+            }
+        	return fmt.Sprintf("%s_%s(&%s%s%s)", n.Class, n.Name, multiargs, t.Translate(n.Parent), strings.Join(argsList, ", "))
             
         case *NodeStmtTypeDef:
         	typeData := n.Type
@@ -154,6 +169,7 @@ func (t *Transpiler) GenerateCCode(nodes []Node) {
     CBuilder.WriteString("#include <stdio.h>\n#include <stdint.h>\n#include \"src/std/runtime.h\"\n\n")
     var mainContents string
     for _, node := range nodes {
+        //fmt.Println(fmt.Sprintf("Node: %s of type %T", t.Translate(node), node))
         line := t.Translate(node)
         mainContents += fmt.Sprintf("%s\n", line)
     }

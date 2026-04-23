@@ -17,6 +17,7 @@ func (p *Parser) Parse() []Node {
         stmt := p.ParseStmt()
         if stmt != nil {
             statements = append(statements, stmt)
+            //fmt.Println(fmt.Sprintf("New stmt: %T", stmt))
         }
     }
     return statements
@@ -27,7 +28,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     
     if p.isAtEnd() {return nil}
     
-    fmt.Println(token, " and ", p.peek(1))
+    //fmt.Println(token, " and ", p.peek(1))
     if token.tokenType == IDENTIFIER {
         expr := p.expression()
         if p.peek(0).tokenType == EQUAL {
@@ -35,6 +36,7 @@ func (p *Parser) ParseStmt() NodeStmt {
             value := p.expression()
             return &NodeAssignment{Target: expr, Value: value}
         }
+        fmt.Println("L'expression: ", expr)
         return &NodeStmtExpr{Expr: expr}
     }
     if token.tokenType == IF {return p.ifStmt()}
@@ -91,12 +93,25 @@ func (p *Parser) primary() NodeExpr {
         } else {
             expr = &NodeVariable{Name: token.Lexeme}
         }
+        
         for p.peek(0).tokenType == DOT {
             p.advance()
             field := p.advance().Lexeme
             
             if p.peek(0).tokenType == LEFT_PAREN {
-            	return p.funcCall()
+                var argsList []NodeExpr
+                var objName string = p.peek(-3).Lexeme
+                var classType string
+                p.advance()
+                for p.peek(0).tokenType != RIGHT_PAREN {
+                    arg := p.expression()
+                    fmt.Println(arg)
+                    argsList = append(argsList, arg)
+                }
+                p.advance()
+                classType = p.envi.Variable[objName]
+                fmt.Println(fmt.Sprintf("Class: %s of Var %s of Method: %s", classType, objName, field))
+                expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
             } else {
                 expr = &NodeGet{Object: expr, Field: field}
             }    
@@ -120,7 +135,7 @@ func (p *Parser) primary() NodeExpr {
         return &NodeLiteral{Value: token.Lexeme}
     }
     
-    PrintError(5, "May be due to unknown characters")
+    PrintError(5, "May be due to unknown character " + token.Lexeme)
     panic("")
 }
 
@@ -219,7 +234,7 @@ func (p *Parser) varAssignment() NodeStmt {
         
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
-            p.envi.Variable[varName] = varVal
+            p.envi.Variable[varName] = varType.Lexeme
             return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
         }
     }

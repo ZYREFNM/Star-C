@@ -2,8 +2,8 @@ package main
 
 type Environnement struct {
     Type map[string]string
-    Variable map[string]any
-    Func map[string]any
+    Variable map[string]string
+    Func map[string]string
     Parent *Environnement
 }
 

@@ -165,6 +165,16 @@ func (n *NodeExprFuncCall) isANode() {}
 func (n *NodeExprFuncCall) isExpr() {}
 
 
+type NodeExprMethodCall struct {
+    Class string
+    Parent NodeExpr
+    Name string
+    Args []NodeExpr
+}
+func (n *NodeExprMethodCall) isANode() {}
+func (n *NodeExprMethodCall) isExpr() {}
+
+
 type NodeStmtTypeDef struct {
     Type Token
     Name string

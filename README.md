@@ -13,7 +13,7 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
     }
     ```
     
-    Advanced bank account representation
+    Bank exemple (this exemple does not intend to be an accurate Bank system program but instead a functionalities show up)
     ``` go
     class BankAccount {
         public var string accountName;
@@ -26,11 +26,23 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
         }
         
         func BankAccount new(float money) {
-            this.accessible = true;
             this.money = money;
+        }
+        
+        func void activate() {
+            this.accessible = true;
         }
         
         func void deactivate() {
             this.accessible = false;
+        }
+        
+        func int main() {
+            var Bank newBank = BankAccount.new();
+            newBank.activate();
+            if (newBank.money <= 0) {
+                newBank.deactivate();
+            }
+            return 0;
         }
     }

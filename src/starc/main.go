@@ -100,7 +100,7 @@ func ignite(source string) {
     var tokens []Token = scanner.ScanTokens()
     lineTracker = scanner.line
     input = scanner.input
-    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]any)}}
+    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]string)}}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
