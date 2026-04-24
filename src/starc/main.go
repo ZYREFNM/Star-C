@@ -4,6 +4,7 @@ import (
     "fmt"
     "os"
     "os/exec"
+    "path/filepath"
     "log"
     "errors"
     "strings"
@@ -16,6 +17,7 @@ var errounousLine int
 var tokType TokenType
 var wordTracker int
 var filePath string
+var workingFileName string = ""
 
 func main() {
     log.SetFlags(0);
@@ -85,7 +87,7 @@ func runFile(path string) string {
     if err != nil {
         PrintError(4, "Check your file's path and if it's correct")
     }
-    
+    workingFileName = filepath.Base(path)[:6]
     if hadCompileError {
         os.Exit(65);
     }
@@ -100,13 +102,13 @@ func ignite(source string) {
     var tokens []Token = scanner.ScanTokens()
     lineTracker = scanner.line
     input = scanner.input
-    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]string)}}
+    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]string), Func: make(map[string]string)}}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
     }
     nodes := parser.Parse()
-    var transpiler Transpiler = Transpiler{fileName: "simple"}
+    var transpiler Transpiler = Transpiler{fileName: workingFileName}
     transpiler.GenerateCCode(nodes)
     fmt.Println(transpiler.fileName)
     cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/std/runtime.c", "-Isrc/std", "-o", transpiler.fileName)

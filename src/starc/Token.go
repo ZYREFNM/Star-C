@@ -37,6 +37,10 @@ func (t TokenType) isModifier() bool {
     return t >= PUBLIC && t <= SET
 }
 
+func (t TokenType) isAction() bool {
+    return t >= CALL && t <= INCLUDE
+}
+
 func (t TokenType) isVarMod() bool {
     return t >= GET && t <= SET
 }
@@ -128,6 +132,7 @@ const (
     //Keywords
     AND
     BREAK
+    CCALL
     CONST
     CLASS
     DEFAULT
@@ -160,6 +165,11 @@ const (
     PRIVATE
     GET
     SET
+    
+    //C-Caller's actions
+    CALL
+    FUNCCALL
+    INCLUDE
     
     EOF
 )

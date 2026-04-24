@@ -47,6 +47,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     if token.tokenType == FUNC {return p.funcInit()}
     if token.tokenType == TYPEDEF {return p.typeDef()}
     if token.tokenType == CLASS {return p.classDef()}
+    if token.tokenType == CCALL {return p.ccall()}
     
     if token.tokenType == SEMICOLON {
         p.advance()
@@ -99,6 +100,7 @@ func (p *Parser) primary() NodeExpr {
             field := p.advance().Lexeme
             
             if p.peek(0).tokenType == LEFT_PAREN {
+                if !p.envi.hasFunc(field) {PrintError(6, fmt.Sprintf("Unknown call of undefined function %s", field))}
                 var argsList []NodeExpr
                 var objName string = p.peek(-3).Lexeme
                 var classType string
@@ -111,7 +113,12 @@ func (p *Parser) primary() NodeExpr {
                 p.advance()
                 classType = p.envi.Variable[objName]
                 fmt.Println(fmt.Sprintf("Class: %s of Var %s of Method: %s", classType, objName, field))
-                expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
+                if field == "new" {
+                    if !p.envi.hasType(objName) {PrintError(7, fmt.Sprintf("Type or class %s not found", objName))}
+                    expr = &NodeExprConstructor{Class: objName, Args: argsList}
+                } else {
+                    expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
+                }
             } else {
                 expr = &NodeGet{Object: expr, Field: field}
             }    
@@ -277,6 +284,22 @@ func (p *Parser) printStmt() NodeStmt {
     panic("")
 }
 
+func (p *Parser) ccall() NodeStmt {
+    if !p.isAtEnd() {
+        p.advance()
+        var called []NodeExpr
+        if !p.peek(0).tokenType.isAction() {PrintError(6, "Expected action for the C-Caller"); panic("")}
+        actionName := p.advance().Lexeme
+        for p.peek(0).tokenType != SEMICOLON {
+            called = append(called, p.expression())
+            if p.peek(0).tokenType == COMMA {p.advance()}
+        }
+        return &NodeStmtC{Action: actionName, Called: called}
+    }
+    PrintError(8, "End Of File reached in C call")
+    panic("")
+}
+
 func (p *Parser) blockStmt() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
@@ -375,6 +398,7 @@ func (p *Parser) funcInit() NodeStmt {
         if !p.isValidType(returnType) && p.peek(-1).tokenType != VOID {PrintError(7, fmt.Sprintf("Unknown return type <%s>", returnType.Lexeme)); panic("")}
         if p.peek(0).tokenType != IDENTIFIER {PrintError(5, "Expected identifier"); panic("")}
         funcName := p.advance().Lexeme
+        p.envi.Func[funcName] = returnType.Lexeme
         if p.peek(1).tokenType != RIGHT_PAREN {
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
@@ -393,6 +417,7 @@ func (p *Parser) funcCall() NodeExpr {
     var argsList []NodeExpr
     if !p.isAtEnd() {
         funcName := p.peek(-1).Lexeme
+        if !p.envi.hasFunc(funcName) {PrintError(6, fmt.Sprintf("Unknown call of undefined function %s", funcName))}
         p.advance()
         for p.peek(0).tokenType != RIGHT_PAREN {
             arg := p.expression()

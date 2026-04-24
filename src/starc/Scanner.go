@@ -42,16 +42,19 @@ var dataType = map[string]TokenType{
 var keywords = map[string]TokenType{
     "and":AND,
     "break":BREAK,
+    "call": CALL,
     "class":CLASS,
     "const":CONST,
     "default":DEFAULT,
     "else":ELSE,
     "false":FALSE,
     "func":FUNC,
+    "func-call":FUNCCALL,
     "for":FOR,
     "get":GET,
     "goto":GOTO,
     "if":IF,
+    "include": INCLUDE,
     "not":NOT,
     "null":NULL,
     "or":OR,
@@ -96,6 +99,10 @@ func (s *Scanner) scanToken() {
     var c byte = s.advance();
     
     switch c {
+        case 'C':
+        	tokenType := IDENTIFIER
+        	if s.match(':') {tokenType = CCALL}
+            s.addToken(tokenType); break
     	case '(': s.addToken(LEFT_PAREN); break;
     	case ')': s.addToken(RIGHT_PAREN); break;
     	case '{': s.addToken(LEFT_BRACE); break;

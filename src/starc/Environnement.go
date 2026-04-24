@@ -16,3 +16,8 @@ func (e *Environnement) hasVar(Var string) bool {
     _, exist := e.Variable[Var]
     return exist
 }
+
+func (e *Environnement) hasFunc(Func string) bool {
+    _, exist := e.Func[Func]
+    return exist
+}

@@ -7,7 +7,7 @@ class Bank {
 
 func int main() {
 	var Bank newBank;
-    newBank.money = 10;
+    newBank.money = 100;
     print newBank.getMoney();
     return 0;
 }

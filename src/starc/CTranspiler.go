@@ -30,6 +30,14 @@ func (t *Transpiler) matchType(Type string) string {
     }
 }
 
+func (t *Transpiler) matchAction(Action string) string {
+    switch Action {
+        case "include": return "#include "
+        case "func-call": return ""
+        default: return ""
+    }
+}
+
 func (t *Transpiler) Translate(node Node) string {
     switch n := node.(type) {
         
@@ -86,7 +94,14 @@ func (t *Transpiler) Translate(node Node) string {
         case *NodeStmtReturn:
         	if n.Value == nil {return "return;"}
             return fmt.Sprintf("return %s;", t.Translate(n.Value))
-            
+        case *NodeStmtC:
+        	var action string = t.matchAction(n.Action)
+        	var list []string
+        	for _, call := range n.Called {
+                list = append(list, action + t.Translate(call)[1:len(t.Translate(call)) - 1])
+            }
+            return strings.Join(list, ";\n")
+        
         case *NodeStmtIf:
         	condition := t.Translate(n.Condition)
             result := t.Translate(n.Result)

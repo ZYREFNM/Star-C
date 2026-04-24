@@ -1,0 +1,9 @@
+class Input {
+	C:func-call "scanf()";
+}
+
+class Output {
+    func void println(string text) {
+    	print text << "\n";
+    }
+}

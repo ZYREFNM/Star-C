@@ -21,11 +21,6 @@ func (n *NodeStmtExpr) isANode() {}
 func (n *NodeStmtExpr) isStmt() {}
 
 
-type NodeModifier struct {
-    Modifier Node
-}
-func (n *NodeModifier) isANode() {}
-
 type NodeGet struct {
     Object Node
     Field string
@@ -111,6 +106,14 @@ func (n *NodeAssignment) isANode() {}
 func (n *NodeAssignment) isStmt() {}
 
 
+type NodeStmtC struct {
+    Action string
+    Called []NodeExpr
+}
+func (n *NodeStmtC) isANode() {}
+func (n *NodeStmtC) isStmt() {}
+
+
 type NodeBlock struct {
 	Instructions []NodeStmt
 }
@@ -173,6 +176,14 @@ type NodeExprMethodCall struct {
 }
 func (n *NodeExprMethodCall) isANode() {}
 func (n *NodeExprMethodCall) isExpr() {}
+
+
+type NodeExprConstructor struct {
+    Class string
+    Args []NodeExpr
+}
+func (n *NodeExprConstructor) isANode() {}
+func (n *NodeExprConstructor) isExpr() {}
 
 
 type NodeStmtTypeDef struct {
