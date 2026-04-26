@@ -21,8 +21,16 @@ func (n *NodeStmtExpr) isANode() {}
 func (n *NodeStmtExpr) isStmt() {}
 
 
+type NodeProperty struct {
+    
+}
+func (n *NodeProperty) isANode() {}
+func (n *NodeProperty) isStmt() {}
+
+
 type NodeGet struct {
     Object Node
+    Symbol string
     Field string
 }
 func (n *NodeGet) isANode() {}
@@ -178,12 +186,13 @@ func (n *NodeExprMethodCall) isANode() {}
 func (n *NodeExprMethodCall) isExpr() {}
 
 
-type NodeExprConstructor struct {
-    Class string
-    Args []NodeExpr
+type NodeStmtConstructor struct {
+    Return string
+    Param []NodeStmt
+    Code NodeStmt
 }
-func (n *NodeExprConstructor) isANode() {}
-func (n *NodeExprConstructor) isExpr() {}
+func (n *NodeStmtConstructor) isANode() {}
+func (n *NodeStmtConstructor) isStmt() {}
 
 
 type NodeStmtTypeDef struct {

@@ -3,6 +3,7 @@ package main
 type Environnement struct {
     Type map[string]string
     Variable map[string]string
+    Pointer map[string]bool
     Func map[string]string
     Parent *Environnement
 }

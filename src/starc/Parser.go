@@ -16,8 +16,9 @@ func (p *Parser) Parse() []Node {
     for !p.isAtEnd() {
         stmt := p.ParseStmt()
         if stmt != nil {
-            statements = append(statements, stmt)
             //fmt.Println(fmt.Sprintf("New stmt: %T", stmt))
+            statements = append(statements, stmt)
+            //fmt.Println(fmt.Sprintf("Stmt: %T consummed", stmt))
         }
     }
     return statements
@@ -28,8 +29,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     
     if p.isAtEnd() {return nil}
     
-    //fmt.Println(token, " and ", p.peek(1))
-    if token.tokenType == IDENTIFIER {
+    if token.tokenType == IDENTIFIER || token.tokenType == THIS {
         expr := p.expression()
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -69,6 +69,7 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() Token {
     if !p.isAtEnd() {p.current++}
+    //fmt.Println("Advanced, ", p.peek(0))
     return p.tokens[p.current - 1]
 }
 
@@ -80,6 +81,7 @@ func (p *Parser) isValidType(Type Token) bool {
 
 func (p *Parser) primary() NodeExpr {
     token := p.advance()
+    //fmt.Println(token, "to ->", p.peek(0))
     
     if token.tokenType.isDigit() {
         return &NodeLiteral{Value: token.Lexeme}
@@ -88,7 +90,7 @@ func (p *Parser) primary() NodeExpr {
         var expr NodeExpr
         
         if token.tokenType == THIS {
-        expr = &NodeVariable{Name: "this"}
+        	expr = &NodeVariable{Name: "this"}
         } else if p.peek(0).tokenType == LEFT_PAREN {
             expr = p.funcCall()
         } else {
@@ -96,6 +98,8 @@ func (p *Parser) primary() NodeExpr {
         }
         
         for p.peek(0).tokenType == DOT {
+            object := token.Lexeme
+            if object == "this" {p.envi.Pointer[object] = true}
             p.advance()
             field := p.advance().Lexeme
             
@@ -107,22 +111,27 @@ func (p *Parser) primary() NodeExpr {
                 p.advance()
                 for p.peek(0).tokenType != RIGHT_PAREN {
                     arg := p.expression()
-                    fmt.Println(arg)
+                    //fmt.Println("Arg: ", arg)
                     argsList = append(argsList, arg)
+                    if p.peek(0).tokenType == COMMA {p.advance()}
                 }
                 p.advance()
                 classType = p.envi.Variable[objName]
-                fmt.Println(fmt.Sprintf("Class: %s of Var %s of Method: %s", classType, objName, field))
+                //fmt.Println(fmt.Sprintf("Class: %s of Var %s of Method: %s", classType, objName, field))
                 if field == "new" {
                     if !p.envi.hasType(objName) {PrintError(7, fmt.Sprintf("Type or class %s not found", objName))}
-                    expr = &NodeExprConstructor{Class: objName, Args: argsList}
-                } else {
-                    expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
+                    classType = objName
                 }
+                expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
             } else {
-                expr = &NodeGet{Object: expr, Field: field}
+                symbol := "."
+                if p.envi.Pointer[object] == true {symbol = "->"}
+                fmt.Println("LE SYMBOLE", object, symbol, "et", p.envi.Pointer[object])
+                expr = &NodeGet{Object: expr, Symbol: symbol, Field: field}
+                //fmt.Println(fmt.Sprintf("Get %T{%s}", expr, expr))
             }    
         }
+        //fmt.Println(fmt.Sprintf("Expr %T", expr))
         return expr
     }
     if token.tokenType == LEFT_PAREN {
@@ -141,7 +150,7 @@ func (p *Parser) primary() NodeExpr {
     if token.tokenType == STRING {
         return &NodeLiteral{Value: token.Lexeme}
     }
-    
+    fmt.Println("Token: ", p.peek(0))
     PrintError(5, "May be due to unknown character " + token.Lexeme)
     panic("")
 }
@@ -223,13 +232,18 @@ func (p *Parser) expression() NodeExpr {
 }
 
 func (p *Parser) varAssignment() NodeStmt {
-    var varVal Node = nil
+    var varVal NodeExpr = nil
+    //var propertyList []NodeProperty
     
     if !p.isAtEnd() {
         p.advance()
-        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
         
+        //if p.peek(0).tokenType == LESS {p.properties()}
+        
+        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
         varType := p.advance()
+        
+        if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
         if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
@@ -407,6 +421,9 @@ func (p *Parser) funcInit() NodeStmt {
         } else {p.advance(); p.advance()}
         if p.peek(0).tokenType != LEFT_BRACE {PrintError(6, "Missing left brace"); panic("")}
         code := p.blockStmt()
+        if funcName == "new" {
+            return &NodeStmtConstructor{Return: returnType.Lexeme, Param: paramList, Code: code}
+            }
         return &NodeStmtFuncInit{Return: returnType.Lexeme, Name: funcName, Param: paramList, Code: code}
     }
     PrintError(8, "Invalid function def statement")

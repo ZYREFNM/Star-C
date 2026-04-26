@@ -86,7 +86,7 @@ func (t *Transpiler) Translate(node Node) string {
             var format string
         	for _, expr := range n.Expressions {
                 list += fmt.Sprintf("%s, ", t.Translate(expr))
-                format += "%d"
+                format += "%s"
             }
             list = list[0:len(list)-2]
         	return fmt.Sprintf("printf(\"%s\\n\", %s);", format, list)
@@ -136,7 +136,7 @@ func (t *Transpiler) Translate(node Node) string {
                 list = append(list, param)
             }
             code = t.Translate(n.Code)
-            code = code[:2] + fmt.Sprintf("	%s* this = malloc(sizeof(%s));\n", n.Return, n.Return) + code[2:]
+            code = code[:2] + fmt.Sprintf("	%s* this = malloc(sizeof(%s));\n", n.Return, n.Return) + code[2:len(code)-2] + "\n	return this;"
             return fmt.Sprintf("%s* %s_new(%s) %s", n.Return, n.Return, strings.Join(list, ", "), code)
         case *NodeExprFuncCall:
         	var argsList []string

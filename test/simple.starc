@@ -1,13 +1,16 @@
-class Bank {
-	var int money;
-    func int getMoney() {
-    	return this.money;
+class Language {
+	var string name;
+    func string getName() {
+    	return this.name;
+    }
+    func void setName(string name) {
+    	this.name = name;
     }
 }
 
 func int main() {
-	var Bank newBank;
-    newBank.money = 100;
-    print newBank.getMoney();
+	var Language language;
+    language.name = "Star-C";
+    print "Hello, " << language.getName(), "!";
     return 0;
 }
