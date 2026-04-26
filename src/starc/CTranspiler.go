@@ -126,7 +126,18 @@ func (t *Transpiler) Translate(node Node) string {
             }
             code := t.Translate(n.Code)
         	return fmt.Sprintf("%s %s(%s) %s", t.matchType(n.Return), funcName, strings.Join(list, ", "), code)
-            
+        
+        case *NodeStmtConstructor:
+            var list []string
+            var code string
+            for _, p := range n.Param {
+                param := t.Translate(p)
+                param = strings.TrimSuffix(param, ";")
+                list = append(list, param)
+            }
+            code = t.Translate(n.Code)
+            code = code[:2] + fmt.Sprintf("	%s* this = malloc(sizeof(%s));\n", n.Return, n.Return) + code[2:]
+            return fmt.Sprintf("%s* %s_new(%s) %s", n.Return, n.Return, strings.Join(list, ", "), code)
         case *NodeExprFuncCall:
         	var argsList []string
             for _, arg := range n.Args {
@@ -136,12 +147,17 @@ func (t *Transpiler) Translate(node Node) string {
         
         case *NodeExprMethodCall:
         	var argsList []string
+            var parPointer string = "&" + t.Translate(n.Parent)
             var multiargs string
             for _, arg := range n.Args {
                 multiargs = ", "
                 argsList = append(argsList, t.Translate(arg))
             }
-        	return fmt.Sprintf("%s_%s(&%s%s%s)", n.Class, n.Name, multiargs, t.Translate(n.Parent), strings.Join(argsList, ", "))
+            if n.Name == "new" {
+                parPointer = ""
+                multiargs = ""
+            }
+        	return fmt.Sprintf("%s_%s(%s%s%s)", n.Class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
             
         case *NodeStmtTypeDef:
         	typeData := n.Type
