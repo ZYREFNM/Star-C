@@ -39,6 +39,14 @@ func (t *Transpiler) matchAction(Action string) string {
     }
 }
 
+func (t *Transpiler) matchProperty(Property string, varName string, varType string) string {
+    switch Property {
+        case "get": return fmt.Sprintf("%s %s_get() {\n	return %s;\n}", varType, varName, varName)
+        case "set": return fmt.Sprintf("void %s_set(%s value) {\n	%s = value;\n}", varName, varType, varName)
+        default: return ""
+    }
+}
+
 func (t *Transpiler) Translate(node Node) string {
     switch n := node.(type) {
         
@@ -65,13 +73,17 @@ func (t *Transpiler) Translate(node Node) string {
             return fmt.Sprintf("%s%s%s", target, symbol, n.Field)
         
         case *NodeStmtVar:
+        	var propCode string
         	Type := t.matchType(n.Type.Lexeme)
             varEnd := ";"
             if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.Translate(n.Value))}
             if n.Properties != nil {
-                prop = matchProperty()
+                propCode = "\n"
+                for _, prop := range n.Properties {
+                	propCode += t.matchProperty(prop, n.Name, Type) + "\n"
+                }
             }
-        	return fmt.Sprintf("%s %s%s%s", Type, n.Name, varEnd, prop)
+        	return fmt.Sprintf("%s %s%s%s", Type, n.Name, varEnd, propCode)
             
         case *NodeAssignment: return fmt.Sprintf("%s = %s;", t.Translate(n.Target), t.Translate(n.Value))
         

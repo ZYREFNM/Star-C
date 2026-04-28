@@ -254,9 +254,8 @@ func (p *Parser) varAssignment() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
         
-        if p.peek(0).tokenType == LESS {propertyList = p.properties()}
-        
-        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
+        if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
+        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
         varType := p.advance()
         
         if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
