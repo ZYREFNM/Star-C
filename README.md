@@ -20,9 +20,7 @@ Star-C is a modern C like language that tries to offer and prioritize a minimali
         public var string accountName;
         private {
             var boolean accessible = true;
-            var <get, set> float64 money {
-                get() <- this;
-                set(float64 value) <- this;
+            var <get, set> float64 money ;
             }
         }
         
