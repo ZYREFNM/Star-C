@@ -1,16 +1,4 @@
-class Language {
-	var string name;
-    func string getName() {
-    	return this.name;
-    }
-    func void setName(string name) {
-    	this.name = name;
-    }
-}
-
 func int main() {
-	var Language language;
-    language.name = "Star-C";
-    print "Hello, " << language.getName(), "!";
+	var <get, set> string text;
     return 0;
 }

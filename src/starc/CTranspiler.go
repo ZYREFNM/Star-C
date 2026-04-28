@@ -20,6 +20,7 @@ func (t *Transpiler) WriteInFile(code string) {
 func (t *Transpiler) matchType(Type string) string {
     switch Type {
         case "string": return "char*"
+        //case "bool": return "boolean"
         case "int8": return "int8_t"
         case "int16": return "int16_t"
         case "int32": return "int32_t"
@@ -67,7 +68,10 @@ func (t *Transpiler) Translate(node Node) string {
         	Type := t.matchType(n.Type.Lexeme)
             varEnd := ";"
             if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.Translate(n.Value))}
-        	return fmt.Sprintf("%s %s%s", Type, n.Name, varEnd)
+            if n.Properties != nil {
+                prop = matchProperty()
+            }
+        	return fmt.Sprintf("%s %s%s%s", Type, n.Name, varEnd, prop)
             
         case *NodeAssignment: return fmt.Sprintf("%s = %s;", t.Translate(n.Target), t.Translate(n.Value))
         
@@ -197,7 +201,7 @@ func (t *Transpiler) Translate(node Node) string {
 
 func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
-    CBuilder.WriteString("#include <stdio.h>\n#include <stdint.h>\n#include \"src/std/runtime.h\"\n\n")
+    CBuilder.WriteString("#include <stdio.h>\n#include <stdint.h>\n#include \"src/compiler/runtime.h\"\n\n")
     var mainContents string
     for _, node := range nodes {
         //fmt.Println(fmt.Sprintf("Node: %s of type %T", t.Translate(node), node))

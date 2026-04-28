@@ -7,7 +7,7 @@ import (
 type Parser struct {
     tokens []Token
     current int
-    envi Environnement
+    envi *Environnement
 }
 
 func (p *Parser) Parse() []Node {
@@ -231,14 +231,30 @@ func (p *Parser) expression() NodeExpr {
     return p.comparison()
 }
 
+func (p *Parser) properties() []string {
+    if !p.isAtEnd() {
+        var propertyList []string
+        p.advance()
+        for p.peek(0).tokenType != GREATER {
+            if !p.peek(0).tokenType.isProperty() {PrintError(6, "Expected property call")}
+            propertyList = append(propertyList, p.peek(0).Lexeme)
+            p.advance()
+            if p.peek(0).tokenType == COMMA {p.advance()}
+        }
+        return propertyList
+    }
+    PrintError(8, "Property call declared but with no end")
+    panic("")
+}
+
 func (p *Parser) varAssignment() NodeStmt {
     var varVal NodeExpr = nil
-    //var propertyList []NodeProperty
+    var propertyList []string = nil
     
     if !p.isAtEnd() {
         p.advance()
         
-        //if p.peek(0).tokenType == LESS {p.properties()}
+        if p.peek(0).tokenType == LESS {propertyList = p.properties()}
         
         if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope"); panic("") }
         varType := p.advance()
@@ -246,6 +262,7 @@ func (p *Parser) varAssignment() NodeStmt {
         if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
+        fmt.Println("Var name", varName)
         if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
         
         if p.peek(0).tokenType == EQUAL {
@@ -256,7 +273,7 @@ func (p *Parser) varAssignment() NodeStmt {
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
             p.envi.Variable[varName] = varType.Lexeme
-            return &NodeStmtVar{Name: varName, Type: varType, Value: varVal}
+            return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal}
         }
     }
     PrintError(8, "Reached End Of File in an invalid variable declaration")
@@ -317,12 +334,15 @@ func (p *Parser) ccall() NodeStmt {
 func (p *Parser) blockStmt() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
+        precScope := p.envi
+        p.envi = p.envi.NewScope()
         var stmts []NodeStmt
         for p.peek(0).tokenType != RIGHT_BRACE {
             stmts = append(stmts, p.ParseStmt())
             if p.peek(0).tokenType == SEMICOLON {p.advance()}
         }
         p.advance()
+        p.envi = precScope
         return &NodeBlock{Instructions: stmts}
     }
     PrintError(6, "Missing }")

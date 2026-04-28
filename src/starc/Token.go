@@ -41,7 +41,7 @@ func (t TokenType) isAction() bool {
     return t >= CALL && t <= INCLUDE
 }
 
-func (t TokenType) isVarMod() bool {
+func (t TokenType) isProperty() bool {
     return t >= GET && t <= SET
 }
 
@@ -79,6 +79,7 @@ const (
     
     //Literals
     ARRAY
+    BOOL
     DICTIONARY
     IDENTIFIER
     INT
@@ -105,6 +106,7 @@ const (
     
     //Data-Type
     ARRAY_TYPE
+    BOOL_TYPE
     DICTIONARY_TYPE
     IDENTIFIER_TYPE
     INT_TYPE

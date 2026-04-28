@@ -59,11 +59,12 @@ func getError(id uint8) (uint8, error) {
         case 3: message += fmt.Sprintf("Unrecognized %s <%s>", char, input); hadRuntimeError = true; break
         case 4: message += "File path invalid... Retry with a working path."; hadImplementsError = true; break
         case 5: message += fmt.Sprintf("Not a valid expression '%s'...", input); hadCompileError = true ; break
-        case 6: message += fmt.Sprintf("Unidentified <%s>", input); hadCompileError = true; break
+        case 6: message += fmt.Sprintf("Unidentified %s", input); hadCompileError = true; break
         case 7: message += fmt.Sprintf("Unknown type or object <%s> of type <%v> at:%d", input, tokType, wordTracker); hadCompileError = true; break
         case 8: message += "Missing character"; hadCompileError = true; break
         case 9: message += "Expected value after statement"; hadCompileError = true; break
-        case 10: message += fmt.Sprintf("Object %s already exist in current scope or context", input)
+        case 10: message += fmt.Sprintf("Object %s already exist in current scope or context", input); break
+        case 11: message += "Missing implementation"
     }
     message += "\n"
     err := errors.New(message);
@@ -102,7 +103,7 @@ func ignite(source string) {
     var tokens []Token = scanner.ScanTokens()
     lineTracker = scanner.line
     input = scanner.input
-    var parser Parser = Parser{tokens: tokens, current: 0, envi: Environnement{Type: make(map[string]string), Variable: make(map[string]string), Pointer: make(map[string]bool), Func: make(map[string]string)}}
+    var parser Parser = Parser{tokens: tokens, current: 0, envi: &Environnement{Type: make(map[string]string), Variable: make(map[string]string), Pointer: make(map[string]bool), Func: make(map[string]string)}}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
@@ -111,7 +112,7 @@ func ignite(source string) {
     var transpiler Transpiler = Transpiler{fileName: workingFileName}
     transpiler.GenerateCCode(nodes)
     fmt.Println(transpiler.fileName)
-    cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/std/runtime.c", "-Isrc/std", "-o", transpiler.fileName)
+    cmd := exec.Command("gcc", transpiler.fileName + ".c", "src/compiler/runtime.c", "-Isrc/compiler", "-o", transpiler.fileName)
     if err := cmd.Run(); err != nil {
 	fmt.Println("GCC error:", err)
     }

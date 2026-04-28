@@ -15,6 +15,7 @@ type Scanner struct {
 
 var dataType = map[string]TokenType{
 	"array":ARRAY_TYPE,
+    "bool":BOOL_TYPE,
 	"dict":DICTIONARY_TYPE,
 	"int":INT_TYPE,
 	"int8":INT8_TYPE,

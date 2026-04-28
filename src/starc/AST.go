@@ -99,6 +99,7 @@ func (n *NodeVariable) isExpr() {}
 
 type NodeStmtVar struct {
     Name string
+    Properties []string
     Type Token
     Value Node
 }
