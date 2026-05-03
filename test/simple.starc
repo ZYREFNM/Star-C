@@ -1,4 +1,13 @@
+class text {
+    var <get> string field;
+}
+
 func int main() {
-	var <get, set> string text;
+    var <get> text name;
+    name.field = "Nigger";
+    print name.get().field.get();
     return 0;
 }
+
+//name_get: text -> text_field_get() -> string
+//name_get: text

@@ -179,6 +179,7 @@ func (n *NodeExprFuncCall) isExpr() {}
 
 type NodeExprMethodCall struct {
     Class string
+    Object string
     Parent NodeExpr
     Name string
     Args []NodeExpr
@@ -195,6 +196,12 @@ type NodeStmtConstructor struct {
 func (n *NodeStmtConstructor) isANode() {}
 func (n *NodeStmtConstructor) isStmt() {}
 
+type NodeScopeAcces struct {
+    Modifier Token
+    Stmt NodeStmt
+}
+func (n *NodeScopeAcces) isANode() {}
+func (n *NodeScopeAcces) isStmt() {}
 
 type NodeStmtTypeDef struct {
     Type Token
@@ -207,9 +214,7 @@ func (n *NodeStmtTypeDef) isStmt() {}
 
 type NodeStmtClass struct {
     Name string
-    Vars []NodeStmt
-    Func []NodeStmt
-    TypeDef []NodeStmt
+    Code []NodeStmt
 }
 func (n *NodeStmtClass) isANode() {}
 func (n *NodeStmtClass) isStmt() {}

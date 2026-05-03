@@ -1,6 +1,5 @@
 package main
 
-import "fmt"
 
 type Environnement struct {
     Type map[string]string
@@ -31,7 +30,6 @@ func (e *Environnement) hasType(Type string) bool {
 func (e *Environnement) hasVar(Var string) bool {
     _, exist := e.Variable[Var]
     if !exist && e.Parent != nil {
-        fmt.Println("Parent Environnement", e.Parent)
         return e.Parent.hasVar(Var)
     }
     return exist

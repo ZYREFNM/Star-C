@@ -18,7 +18,7 @@ func (p *Parser) Parse() []Node {
         if stmt != nil {
             //fmt.Println(fmt.Sprintf("New stmt: %T", stmt))
             statements = append(statements, stmt)
-            //fmt.Println(fmt.Sprintf("Stmt: %T consummed", stmt))
+            fmt.Println(fmt.Sprintf("Stmt: %T consummed", stmt))
         }
     }
     return statements
@@ -36,7 +36,7 @@ func (p *Parser) ParseStmt() NodeStmt {
             value := p.expression()
             return &NodeAssignment{Target: expr, Value: value}
         }
-        fmt.Println("L'expression: ", expr)
+        //fmt.Println("L'expression: ", expr)
         return &NodeStmtExpr{Expr: expr}
     }
     if token.tokenType == IF {return p.ifStmt()}
@@ -48,6 +48,7 @@ func (p *Parser) ParseStmt() NodeStmt {
     if token.tokenType == TYPEDEF {return p.typeDef()}
     if token.tokenType == CLASS {return p.classDef()}
     if token.tokenType == CCALL {return p.ccall()}
+    if token.tokenType == PRIVATE {fmt.Sprintf("Scope access"); return p.scopeAccess()}
     
     if token.tokenType == SEMICOLON {
         p.advance()
@@ -74,6 +75,7 @@ func (p *Parser) advance() Token {
 }
 
 func (p *Parser) isValidType(Type Token) bool {
+    //fmt.Println("Checkin' type")
     return Type.tokenType.isType() || p.envi.hasType(Type.Lexeme)
 }
 
@@ -97,41 +99,33 @@ func (p *Parser) primary() NodeExpr {
             expr = &NodeVariable{Name: token.Lexeme}
         }
         
+        var class string
         for p.peek(0).tokenType == DOT {
+            
             object := token.Lexeme
             if object == "this" {p.envi.Pointer[object] = true}
             p.advance()
             field := p.advance().Lexeme
+            var objName string = p.peek(-3).Lexeme
             
             if p.peek(0).tokenType == LEFT_PAREN {
-                if !p.envi.hasFunc(field) {PrintError(6, fmt.Sprintf("Unknown call of undefined function %s", field))}
+                p.advance()
                 var argsList []NodeExpr
-                var objName string = p.peek(-3).Lexeme
-                var classType string
-                p.advance()
+                
                 for p.peek(0).tokenType != RIGHT_PAREN {
-                    arg := p.expression()
-                    //fmt.Println("Arg: ", arg)
-                    argsList = append(argsList, arg)
-                    if p.peek(0).tokenType == COMMA {p.advance()}
+                    argsList = append(argsList, p.expression())
                 }
                 p.advance()
-                classType = p.envi.Variable[objName]
-                //fmt.Println(fmt.Sprintf("Class: %s of Var %s of Method: %s", classType, objName, field))
-                if field == "new" {
-                    if !p.envi.hasType(objName) {PrintError(7, fmt.Sprintf("Type or class %s not found", objName))}
-                    classType = objName
-                }
-                expr = &NodeExprMethodCall{Class: classType, Parent: expr, Name: field, Args: argsList}
+                if class != "" {class += "_"}
+                expr = &NodeExprMethodCall{Class: class + objName, Parent: expr, Name: field, Args: argsList}
+                class = p.envi.Func[objName + "_" + field]
             } else {
                 symbol := "."
                 if p.envi.Pointer[object] == true {symbol = "->"}
-                fmt.Println("LE SYMBOLE", object, symbol, "et", p.envi.Pointer[object])
                 expr = &NodeGet{Object: expr, Symbol: symbol, Field: field}
-                //fmt.Println(fmt.Sprintf("Get %T{%s}", expr, expr))
             }    
         }
-        //fmt.Println(fmt.Sprintf("Expr %T", expr))
+        fmt.Println(fmt.Sprintf("Expr %T", expr))
         return expr
     }
     if token.tokenType == LEFT_PAREN {
@@ -147,10 +141,18 @@ func (p *Parser) primary() NodeExpr {
         return &NodeLiteral{Value: token.Lexeme}
     }
     
+    if token.tokenType == TRUE {
+        return &NodeLiteral{Value: token.Lexeme}
+    }
+    
+    if token.tokenType == FALSE {
+        return &NodeLiteral{Value: token.Lexeme}
+    }
+    
     if token.tokenType == STRING {
         return &NodeLiteral{Value: token.Lexeme}
     }
-    fmt.Println("Token: ", p.peek(0))
+    //fmt.Println("Token: ", p.peek(0))
     PrintError(5, "May be due to unknown character " + token.Lexeme)
     panic("")
 }
@@ -255,14 +257,21 @@ func (p *Parser) varAssignment() NodeStmt {
         p.advance()
         
         if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
-        if !p.peek(0).tokenType.isType() && !p.envi.hasType(p.peek(0).Lexeme) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
+        if !p.isValidType(p.peek(0)) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
         varType := p.advance()
         
         if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
-        fmt.Println("Var name", varName)
+        //fmt.Println("Var name", varName)
         if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
+        //fmt.Println("Ur var in envi", p.envi.Variable[varName])
+        
+		for _, prop := range propertyList {
+            propFunc := varName + "_" + prop
+			p.envi.Func[propFunc] = varType.Lexeme
+			//fmt.Println("Key:", propFunc, "Value:", p.envi.Func[propFunc])
+		}
         
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -333,7 +342,7 @@ func (p *Parser) ccall() NodeStmt {
 func (p *Parser) blockStmt() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
-        precScope := p.envi
+        parScope := p.envi
         p.envi = p.envi.NewScope()
         var stmts []NodeStmt
         for p.peek(0).tokenType != RIGHT_BRACE {
@@ -341,7 +350,7 @@ func (p *Parser) blockStmt() NodeStmt {
             if p.peek(0).tokenType == SEMICOLON {p.advance()}
         }
         p.advance()
-        p.envi = precScope
+        p.envi = parScope
         return &NodeBlock{Instructions: stmts}
     }
     PrintError(6, "Missing }")
@@ -466,6 +475,18 @@ func (p *Parser) funcCall() NodeExpr {
     panic("")
 }
 
+func (p *Parser) scopeAccess() NodeStmt {
+    if !p.isAtEnd() {
+        modifier := p.advance()
+        fmt.Println("Current point", p.peek(0))
+        stmt := p.ParseStmt()
+        fmt.Println(stmt)
+        return &NodeScopeAcces{Modifier: modifier, Stmt: stmt}
+    }
+    PrintError(5, "Scope access in End Of File")
+    panic("")
+}
+
 func (p *Parser) typeDef() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
@@ -495,21 +516,20 @@ func (p *Parser) typeDef() NodeStmt {
 
 func (p *Parser) classDef() NodeStmt {
     if !p.isAtEnd() {
-        var classVars []NodeStmt = nil
-        var classFunc []NodeStmt = nil
-        var classTypes []NodeStmt = nil
         p.advance()
         className := p.advance().Lexeme
         if p.envi.hasType(className) {PrintError(10, "Class declared twice in the same context"); panic("")}
         p.envi.Type[className] = ""
         if p.advance().tokenType != LEFT_BRACE {PrintError(8, "Expected left brace {"); panic("")}
+        parScope := p.envi
+        p.envi = p.envi.NewScope()
+        var code []NodeStmt
         for p.peek(0).tokenType != RIGHT_BRACE {
-            if p.peek(0).tokenType == VAR {classVars = append(classVars, p.varAssignment())}
-            if p.peek(0).tokenType == FUNC {classFunc = append(classFunc, p.funcInit())}
-            if p.peek(0).tokenType == TYPEDEF {classTypes = append(classTypes, p.typeDef())}
+            code = append(code, p.ParseStmt())
         }
         p.advance()
-        return &NodeStmtClass{Name: className, Vars: classVars, Func: classFunc, TypeDef: classTypes}
+        p.envi = parScope
+        return &NodeStmtClass{Name: className, Code: code}
     }
     PrintError(8, "Reached precocious End Of File in class body")
     panic("")

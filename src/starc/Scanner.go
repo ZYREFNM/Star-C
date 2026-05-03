@@ -195,7 +195,7 @@ func (s *Scanner) scanToken() {
             for {
             	s.advance()
         		if s.isAtEnd() {
-                	PrintError(3, "May be due to a symbol that got in a contexte where it shouldn't be")
+                	PrintError(3, "May be due to a symbol that got in a context where it shouldn't be")
                 	return
                 }
             }
