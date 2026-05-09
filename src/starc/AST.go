@@ -115,9 +115,18 @@ func (n *NodeAssignment) isANode() {}
 func (n *NodeAssignment) isStmt() {}
 
 
+type NodeExprAlloc struct {
+    Allocation string
+    Size NodeExpr
+}
+func (n *NodeExprAlloc) isANode() {}
+func (n *NodeExprAlloc) isExpr() {}
+
+
 type NodeStmtC struct {
     Action string
     Called []NodeExpr
+    CallerName string
 }
 func (n *NodeStmtC) isANode() {}
 func (n *NodeStmtC) isStmt() {}
@@ -183,6 +192,7 @@ type NodeExprMethodCall struct {
     Parent NodeExpr
     Name string
     Args []NodeExpr
+    Static bool
 }
 func (n *NodeExprMethodCall) isANode() {}
 func (n *NodeExprMethodCall) isExpr() {}
@@ -195,6 +205,14 @@ type NodeStmtConstructor struct {
 }
 func (n *NodeStmtConstructor) isANode() {}
 func (n *NodeStmtConstructor) isStmt() {}
+
+
+type NodeStaticStmt struct {
+    Stmt NodeStmt
+}
+func (n *NodeStaticStmt) isANode() {}
+func (n *NodeStaticStmt) isStmt() {}
+
 
 type NodeScopeAcces struct {
     Modifier Token
@@ -218,3 +236,17 @@ type NodeStmtClass struct {
 }
 func (n *NodeStmtClass) isANode() {}
 func (n *NodeStmtClass) isStmt() {}
+
+
+type NodeStmtPkg struct {
+    Name string
+}
+func (n *NodeStmtPkg) isANode() {}
+func (n *NodeStmtPkg) isStmt() {}
+
+
+type NodeImport struct {
+    Names []string
+}
+func (n *NodeImport) isANode() {}
+func (n *NodeImport) isStmt() {}

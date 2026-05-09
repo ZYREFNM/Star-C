@@ -1,0 +1,20 @@
+package IO;
+
+class Input {
+    static func void printf(string fmt, string text) {
+        C:function printf(fmt, text);
+    }
+    
+    static func void printfln(string fmt, string text) {
+        C:function printf(fmt << "\n", text);
+    }
+    
+}
+
+class Output {
+}
+
+func int main() {
+    Input.printfln("%s", "Hello, world!");
+    return 0;
+}

@@ -41,21 +41,26 @@ var dataType = map[string]TokenType{
 }
 
 var keywords = map[string]TokenType{
+    "alloc":ALLOCATE,
     "and":AND,
     "break":BREAK,
-    "call": CALL,
+    "call":CALL,
     "class":CLASS,
+    "clean":CLEAN,
     "const":CONST,
     "default":DEFAULT,
     "else":ELSE,
     "false":FALSE,
     "func":FUNC,
-    "func-call":FUNCCALL,
+    "function":FUNCCALL,
     "for":FOR,
+    "free": FREE,
     "get":GET,
     "goto":GOTO,
     "if":IF,
-    "include": INCLUDE,
+    "import":IMPORT,
+    "include":INCLUDE,
+    "memory":MEMORY,
     "not":NOT,
     "null":NULL,
     "or":OR,
@@ -67,6 +72,7 @@ var keywords = map[string]TokenType{
     "return":RETURN,
     "set":SET,
     "super":SUPER,
+    "static":STATIC,
 	"struct":STRUCT,
     "switch":SWITCH,
     "this":THIS,
@@ -125,7 +131,9 @@ func (s *Scanner) scanToken() {
             }
         	s.addToken(tokenType); break;
     	case ';': s.addToken(SEMICOLON); break;
-    	case '*':
+    	case ':': s.addToken(COLON); break
+        case '$': s.addToken(DOLLAR); break
+        case '*':
         	tokenType := STAR
         	if s.match('=') {
                 tokenType = STAR_EQUAL

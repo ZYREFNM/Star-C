@@ -1,13 +1,6 @@
-class text {
-    var <get> string field;
-}
+package Main;
+import {"std/IO"}
 
 func int main() {
-    var <get> text name;
-    name.field = "Nigger";
-    print name.get().field.get();
     return 0;
 }
-
-//name_get: text -> text_field_get() -> string
-//name_get: text

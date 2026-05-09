@@ -1,9 +1,9 @@
 # Star-C
-Star-C is a modern C like language that tries to offer and prioritize a minimalistic and lightweight tool but with fast and powerful ecosystem
+{Empty Description} -> Fill later
 
 - ## Version
-	!This project is actually instable and doesn't have realeses yet!
-	Currently is Pre-Alpha version 0.5.4
+	This project is actually instable and doesn't have realeses yet!
+	Currently is Pre-Alpha version 0.9.1
 
 - ## Exemple
 	Simple Hello, world!

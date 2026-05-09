@@ -45,6 +45,10 @@ func (t TokenType) isProperty() bool {
     return t >= GET && t <= SET
 }
 
+func (t TokenType) isMemManage() bool {
+    return t >= MEMORY && t <= FREE
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota
@@ -53,8 +57,10 @@ const (
     RIGHT_BRACE
     LEFT_BRACKET
     RIGHT_BRACKET
+    COLON
     COMMA
     DOT
+    DOLLAR
     MINUS
     PLUS
     SEMICOLON
@@ -132,6 +138,7 @@ const (
     STRING_TYPE
     
     //Keywords
+    ALLOCATE
     AND
     BREAK
     CCALL
@@ -144,6 +151,7 @@ const (
     FOR
     GOTO
     IF
+    IMPORT
     NOT
     NULL
     OR
@@ -152,6 +160,7 @@ const (
     PRINT
     RETURN
     SUPER
+    STATIC
     STRUCT
     SWITCH
     THIS
@@ -172,6 +181,11 @@ const (
     CALL
     FUNCCALL
     INCLUDE
+    
+    //Memory allocation keywords
+    MEMORY
+    CLEAN
+    FREE
     
     EOF
 )

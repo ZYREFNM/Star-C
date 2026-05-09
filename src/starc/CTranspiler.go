@@ -10,6 +10,9 @@ import (
 type Transpiler struct {
     fileName string
     currentClass string
+    Package string
+    importField string
+    static bool
     globalVars string
     globalFuncs string
 }
@@ -33,10 +36,20 @@ func (t *Transpiler) matchType(Type string) string {
     }
 }
 
-func (t *Transpiler) matchAction(Action string) string {
+func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName string) string {
     switch Action {
-        case "include": return "#include "
-        case "func-call": return ""
+        case "include":
+            var code string
+            for _, called := range Called {
+                code += "#include " + t.Translate(called) + "\n"
+            }
+            return code
+        case "function":
+            var args []string
+            for _, arg := range Called {
+                args = append(args, t.Translate(arg))
+            }
+            return fmt.Sprintf("%s(%s)", CallerName, strings.Join(args, ", "))
         default: return ""
     }
 }
@@ -48,6 +61,15 @@ func (t *Transpiler) matchProperty(Property string, varName string, varType stri
         case "get": return fmt.Sprintf("%s %s%s_get(%s %s) {\n	return %s;\n}", varType, class, varName, varType, varName, varName)
         case "set": return fmt.Sprintf("void %s_set(%s value) {\n	%s = value;\n}", varName, varType, varName)
         default: return ""
+    }
+}
+
+func (t *Transpiler) matchAllocate(alloc string) string {
+    switch alloc {
+        case "memory": return "malloc"
+        case "free": return "free"
+        case "clean": return "calloc"
+    	default: return alloc
     }
 }
 
@@ -92,6 +114,9 @@ func (t *Transpiler) Translate(node Node) string {
         
         case *NodeVariable: return n.Name
         
+        case *NodeExprAlloc:
+            return fmt.Sprintf("%s(%s)", t.matchAllocate(n.Allocation), t.Translate(n.Size))
+        
         case *NodeBlock:
         	var code string = "{\n"
             for _, stmt := range n.Instructions {
@@ -114,12 +139,7 @@ func (t *Transpiler) Translate(node Node) string {
         	if n.Value == nil {return "return;"}
             return fmt.Sprintf("return %s;", t.Translate(n.Value))
         case *NodeStmtC:
-        	var action string = t.matchAction(n.Action)
-        	var list []string
-        	for _, call := range n.Called {
-                list = append(list, action + t.Translate(call)[1:len(t.Translate(call)) - 1])
-            }
-            return strings.Join(list, ";\n")
+            return t.matchAction(n.Action, n.Called, n.CallerName) + ";"
         
         case *NodeStmtIf:
         	condition := t.Translate(n.Condition)
@@ -136,7 +156,9 @@ func (t *Transpiler) Translate(node Node) string {
         	var list []string
             if t.currentClass != "" {
                 funcName = t.currentClass + "_" + funcName
-                list = append(list, fmt.Sprintf("%s* this", t.currentClass))
+                if !t.static {
+                    list = append(list, fmt.Sprintf("%s* this", t.currentClass))
+                }
             }
         	for _, p := range n.Param {
                 param := t.Translate(p)
@@ -177,11 +199,18 @@ func (t *Transpiler) Translate(node Node) string {
                 parPointer = t.Translate(n.Parent)
             }
             
-            if n.Name == "new" {
+            fmt.Println("Static func call: ", n.Name, n.Static)
+            if n.Static == true {
                 parPointer = ""
                 multiargs = ""
             }
         	return fmt.Sprintf("%s_%s(%s%s%s)", n.Class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
+        
+        case *NodeStaticStmt:
+            t.static = true
+            stmt := t.Translate(n.Stmt)
+            t.static = false
+            return stmt
             
         case *NodeStmtTypeDef:
         	typeData := n.Type
@@ -196,7 +225,8 @@ func (t *Transpiler) Translate(node Node) string {
                 code += "}"
                 Type = "struct"
             }
-        	return fmt.Sprintf("typedef %s%s %s\n", Type, code, typeName)
+        	t.globalVars += fmt.Sprintf("typedef %s%s %s;\n", Type, code, typeName)
+            return ""
         case *NodeStmtClass:
         	className := n.Name
             var classVars string
@@ -213,13 +243,25 @@ func (t *Transpiler) Translate(node Node) string {
             t.globalVars += fmt.Sprintf("typedef struct {\n%s} %s;\n%s", classVars, className, classCode)
             return ""
         
+        case *NodeStmtPkg:
+            t.globalVars += fmt.Sprintf("#define PACKAGE \"%s\"\n", n.Name)
+            return ""
+        
+        case *NodeImport:
+            var importCode string
+            for _, pkg := range n.Names {
+                importCode += "import " + pkg + "\n"
+            }
+            t.importField += importCode
+            return ""
+        
         default: return ""
     }
 }
 
 func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
-    CBuilder.WriteString("#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"src/compiler/runtime.h\"\n\n")
+    CBuilder.WriteString("#include <stdlib.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"src/compiler/runtime.h\"\n\n")
     var mainContents string
     for _, node := range nodes {
         //fmt.Println(fmt.Sprintf("Node: %s of type %T", t.Translate(node), node))

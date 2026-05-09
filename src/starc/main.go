@@ -64,7 +64,8 @@ func getError(id uint8) (uint8, error) {
         case 8: message += "Missing character"; hadCompileError = true; break
         case 9: message += "Expected value after statement"; hadCompileError = true; break
         case 10: message += fmt.Sprintf("Object %s already exist in current scope or context", input); break
-        case 11: message += "Missing implementation"
+        case 11: message += "Missing implementation"; break
+        case 12: message += "PlaceHolder error for $callers"; break
     }
     message += "\n"
     err := errors.New(message);
@@ -88,7 +89,7 @@ func runFile(path string) string {
     if err != nil {
         PrintError(4, "Check your file's path and if it's correct")
     }
-    workingFileName = filepath.Base(path)[:6]
+    workingFileName = filepath.Base(path)[:len(filepath.Base(path))-6]
     if hadCompileError {
         os.Exit(65);
     }
@@ -103,7 +104,7 @@ func ignite(source string) {
     var tokens []Token = scanner.ScanTokens()
     lineTracker = scanner.line
     input = scanner.input
-    var parser Parser = Parser{tokens: tokens, current: 0, envi: &Environnement{Type: make(map[string]string), Variable: make(map[string]string), Pointer: make(map[string]bool), Func: make(map[string]string)}}
+    var parser Parser = Parser{tokens: tokens, current: 0, envi: InitEnvi()}
     for token, _ := range parser.tokens {
         wordTracker = parser.current
         tokType = tokens[token].tokenType
