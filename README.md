@@ -1,46 +1,18 @@
-# Star-C
-{Empty Description} -> Fill later
+# Star-Clang
+Star-C is a transpiled 
 
 - ## Version
 	This project is actually instable and doesn't have realeses yet!
-	Currently is Pre-Alpha version 0.9.1
+	Currently is in Pre-Alpha version 1.0.0
 
 - ## Exemple
 	Simple Hello, world!
 	```go
+    package main;
+    import "IO";
+    
     func int main() {
-        print "Hello, world!";
+        IO::Output.printf("%s", "Hello, world");
         return 0;
     }
     ```
-    
-    Bank exemple (this exemple does not intend to be an accurate Bank system program but instead a functionalities show up)
-    ``` go
-    class BankAccount {
-        public var string accountName;
-        private {
-            var boolean accessible = true;
-            var <get, set> float64 money ;
-            }
-        }
-        
-        func BankAccount new(float money) {
-            this.money = money;
-        }
-        
-        func void activate() {
-            this.accessible = true;
-        }
-        
-        func void deactivate() {
-            this.accessible = false;
-        }
-    }
-    func int main() {
-    	var Bank newBank = BankAccount.new();
-    	newBank.activate();
-    	if (newBank.money <= 0) {
-        	newBank.deactivate();
-        }
-    	return 0;
-    }

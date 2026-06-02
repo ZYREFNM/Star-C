@@ -1,0 +1,13 @@
+package main;
+import {
+    "IO",
+    "Math"
+}
+
+func int main() {
+    loop[10000] {
+        IO::Output.print("\033[2J\033[1;1H");
+        IO::Output.print("*");
+    }
+    return 0;
+}

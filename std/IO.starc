@@ -1,6 +1,13 @@
 package IO;
 
 class Input {
+}
+
+class Output {
+    static func void print(string text) {
+        C:function printf(text);
+    }
+    
     static func void printf(string fmt, string text) {
         C:function printf(fmt, text);
     }
@@ -8,13 +15,4 @@ class Input {
     static func void printfln(string fmt, string text) {
         C:function printf(fmt << "\n", text);
     }
-    
-}
-
-class Output {
-}
-
-func int main() {
-    Input.printfln("%s", "Hello, world!");
-    return 0;
-}
+}    

@@ -5,6 +5,7 @@ import (
 )
 
 type Parser struct {
+    Package string
     tokens []Token
     current int
     envi *Environnement
@@ -12,15 +13,15 @@ type Parser struct {
 
 func (p *Parser) Parse() []Node {
     var statements []Node
-    
     for !p.isAtEnd() {
         stmt := p.ParseStmt()
         if stmt != nil {
-            //fmt.Println(fmt.Sprintf("New stmt: %T", stmt))
+            fmt.Println(fmt.Sprintf("New stmt: %T", stmt))
             statements = append(statements, stmt)
-            //fmt.Println(fmt.Sprintf("Stmt: %T consummed", stmt))
+            fmt.Println(fmt.Sprintf("Stmt: %T consummed", stmt))
         }
     }
+    //fmt.Println("Parsed envi", p.envi.Static)
     return statements
 }
 
@@ -28,23 +29,41 @@ func (p *Parser) ParseStmt() NodeStmt {
     token := p.peek(0)
     
     if p.isAtEnd() {return nil}
-    
+    fmt.Println(token.tokenType == IDENTIFIER)
     switch token.tokenType {
-        case IDENTIFIER:
         case THIS:
+        	//fmt.Println("Ident", p.peek(0).Lexeme)
             expr := p.expression()
+            //fmt.Println("Ident", expr)
             if p.peek(0).tokenType == EQUAL {
+                //fmt.Println("Ident", p.peek(0))
+                //fmt.Println("Ident", expr)
                 p.advance()
                 value := p.expression()
                 return &NodeAssignment{Target: expr, Value: value}
             }
             //fmt.Println("L'expression: ", expr)
             return &NodeStmtExpr{Expr: expr}
-    
+        case IDENTIFIER:
+            //fmt.Println("Ident", p.peek(0).Lexeme)
+            expr := p.expression()
+            //fmt.Println("Ident", expr)
+            if p.peek(0).tokenType == EQUAL {
+                //fmt.Println("Ident", p.peek(0))
+                //fmt.Println("Ident", expr)
+                p.advance()
+                value := p.expression()
+                return &NodeAssignment{Target: expr, Value: value}
+            }    
+            //fmt.Println("L'expression: ", expr)
+            return &NodeStmtExpr{Expr: expr}
+        
         case IF: return p.ifStmt()
         case VAR: return p.varAssignment()
+        case CONST: return p.constAssignment()
         case PRINT: return p.printStmt()
         case RETURN: return p.returnStmt()
+        case LOOP: return p.loop()
         case WHILE: return p.whileStmt()
         case FUNC: return p.funcInit()
         case TYPEDEF: return p.typeDef()
@@ -62,6 +81,7 @@ func (p *Parser) ParseStmt() NodeStmt {
         return nil
     }
     
+    fmt.Println("Expr quelconque")
     expr := p.expression()
     if p.peek(0).tokenType == SEMICOLON {p.advance()}
     return &NodeStmtExpr{Expr: expr}
@@ -77,7 +97,7 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() Token {
     if !p.isAtEnd() {p.current++}
-    //fmt.Println("Advanced, ", p.peek(0))
+    //fmt.Println("Advanced, ", p.peek(0), ", consumed: ", p.peek(-1))
     return p.tokens[p.current - 1]
 }
 
@@ -89,8 +109,8 @@ func (p *Parser) isValidType(Type Token) bool {
 // Next following are the nodes’ recursion
 
 func (p *Parser) primary() NodeExpr {
+    //fmt.Println("Running through primary")
     token := p.advance()
-    //fmt.Println(token, "to ->", p.peek(0))
     
     if token.tokenType.isDigit() {
         return &NodeLiteral{Value: token.Lexeme}
@@ -102,6 +122,9 @@ func (p *Parser) primary() NodeExpr {
         	expr = &NodeVariable{Name: "this"}
         } else if p.peek(0).tokenType == LEFT_PAREN {
             expr = p.funcCall()
+        } else if p.peek(0).tokenType == SCOPE_RESOLVE {
+            p.advance()
+            expr = &NodePkgResolve{Pkg: token.Lexeme, Resolution: p.expression()}
         } else {
             expr = &NodeVariable{Name: token.Lexeme}
         }
@@ -126,12 +149,12 @@ func (p *Parser) primary() NodeExpr {
                 }
                 p.advance()
                 if field == "new" {
-                    if !p.isValidType(objName) {PrintError(7, "Unknown type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("")}
+                    if !p.isValidType(objName) {p.envi.Unknown.Type[p.peek(0).Lexeme] = p.Package}
                 //    class = objName.Lexeme
                 }
                 if class != "" {class += "_"}
                 isStatic := p.envi.getStatic(field, object)
-                fmt.Println("Static ?", field, isStatic, p.envi.Static[field])
+                //fmt.Println("Static ?", field, isStatic, p.envi.Static[field])
                 expr = &NodeExprMethodCall{Class: class + objName.Lexeme, Parent: expr, Name: field, Args: argsList, Static: isStatic}
                 class = p.envi.Func[objName.Lexeme + "_" + field]
             } else {
@@ -140,7 +163,7 @@ func (p *Parser) primary() NodeExpr {
                 expr = &NodeGet{Object: expr, Symbol: symbol, Field: field}
             }    
         }
-        //fmt.Println(fmt.Sprintf("Expr %T", expr))
+        fmt.Println(fmt.Sprintf("Expr %v %T", expr, expr))
         return expr
     }
     if token.tokenType == LEFT_PAREN {
@@ -188,6 +211,7 @@ func (p *Parser) primary() NodeExpr {
 }
 
 func (p *Parser) concat() NodeExpr {
+    //fmt.Println("Running through concat")
     expr := p.primary()
     
     for p.peek(0).tokenType == CONCAT {
@@ -199,9 +223,10 @@ func (p *Parser) concat() NodeExpr {
 }
 
 func (p *Parser) unary() NodeExpr {
+    //fmt.Println("Running through unary")
     token := p.peek(0)
     
-    if token.tokenType == MINUS {
+    if token.tokenType == MINUS || token.tokenType == BANG {
         p.advance()
         
         right := p.unary()
@@ -212,12 +237,14 @@ func (p *Parser) unary() NodeExpr {
 }
 
 func (p * Parser) grouping() NodeExpr {
+    //fmt.Println("Running through group")
     expr := p.expression()
     p.advance()
     return expr
 }
 
 func (p *Parser) factor() NodeExpr {
+    //fmt.Println("Running through factors")
     expr := p.unary()
     token := p.peek(0)
     
@@ -225,7 +252,7 @@ func (p *Parser) factor() NodeExpr {
         if token.tokenType == STAR || token.tokenType == SLASH {
             p.advance()
             operator := token.Lexeme
-            right := p.primary()
+            right := p.unary()
             expr = &NodeBinary{Left: expr, Operator: operator, Right: right}
         }
     }
@@ -233,6 +260,7 @@ func (p *Parser) factor() NodeExpr {
 }
 
 func (p *Parser) binary() NodeExpr {
+    //fmt.Println("Running through binary")
     expr := p.factor()
     token := p.peek(0)
     
@@ -248,6 +276,7 @@ func (p *Parser) binary() NodeExpr {
 }
 
 func (p *Parser) comparison() NodeExpr {
+    //fmt.Println("Running through comp")
     expr := p.binary()
     
     for p.peek(0).tokenType.isBoolOperator() {
@@ -260,6 +289,7 @@ func (p *Parser) comparison() NodeExpr {
 
 func (p *Parser) expression() NodeExpr {
 	if p.isAtEnd() {return nil}
+    //fmt.Println("Running through expression")
     return p.comparison()
 }
 
@@ -287,7 +317,7 @@ func (p *Parser) varAssignment() NodeStmt {
         p.advance()
         
         if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
-        if !p.isValidType(p.peek(0)) { PrintError(7, "Unknown variable type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
+        if !p.isValidType(p.peek(0)) {PrintError(5, "Unsuported form of type for now... to fix"); panic("")}
         varType := p.advance()
         
         if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
@@ -308,13 +338,56 @@ func (p *Parser) varAssignment() NodeStmt {
             varVal = p.expression()
         }
         
+        global := false
+        if p.envi.isGlobal() {global = true}
+        
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
             p.envi.Variable[varName] = varType.Lexeme
-            return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal}
+            return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal, Global: global}
         }
     }
     PrintError(8, "Reached End Of File in an invalid variable declaration")
+    panic("")
+}
+
+func (p *Parser) constAssignment() NodeStmt {
+    var constVal NodeExpr = nil
+    var propertyList []string = nil
+    
+    if !p.isAtEnd() {
+        p.advance()
+        
+        if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
+        if !p.isValidType(p.peek(0)) { PrintError(7, "Unknown const type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
+        constType := p.advance()
+        
+        if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
+        if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
+        constName := p.advance().Lexeme
+        if p.envi.hasConst(constName) {PrintError(10, "Const declared twice"); panic("")}
+        
+		for _, prop := range propertyList {
+            propFunc := constName + "_" + prop
+			p.envi.Func[propFunc] = constType.Lexeme
+		}
+        
+        if p.peek(0).tokenType != EQUAL {
+            PrintError(6, "Invalid Const Stmt")
+        }
+        p.advance()
+        constVal = p.expression()
+        
+        global := false
+        if p.envi.isGlobal() {global = true}
+        
+        if p.peek(0).tokenType == SEMICOLON {
+            p.advance()
+            p.envi.Const[constName] = constType.Lexeme
+            return &NodeStmtConst{Name: constName, Properties: propertyList, Type: constType, Value: constVal, Global: global}
+        }
+    }
+    PrintError(8, "Reached End Of File in an invalid const declaration")
     panic("")
 }
 
@@ -370,7 +443,7 @@ func (p *Parser) ccall() NodeStmt {
         case "function":
             if p.peek(0).tokenType != IDENTIFIER {PrintError(3, "Expected Identifier"); panic("")}
             callerName = p.advance().Lexeme
-            fmt.Println("Caller", callerName)
+            //fmt.Println("Caller", callerName)
             if p.peek(0).tokenType != LEFT_PAREN {PrintError(3, "Expected left parenthesize for C function call"); panic("")}
             p.advance()
             for p.peek(0).tokenType != RIGHT_PAREN {
@@ -380,7 +453,7 @@ func (p *Parser) ccall() NodeStmt {
             p.advance()
             break
         }
-        fmt.Println("Token actuel", p.peek(0))
+        //fmt.Println("Token actuel", p.peek(0))
         if p.peek(0).tokenType != SEMICOLON {fmt.Println(p.peek(0)); PrintError(3, "Expected semicolon"); panic("")}
         p.advance()
         return &NodeStmtC{Action: actionName, Called: called, CallerName: callerName}
@@ -440,6 +513,24 @@ func (p *Parser) ifStmt() NodeStmt {
     panic("")
 }
 
+func (p *Parser) loop() NodeStmt {
+    var result NodeStmt
+    if !p.isAtEnd() {
+        p.advance()
+        p.advance()
+        looping := p.expression()
+        p.advance()
+        if p.peek(0).tokenType == LEFT_BRACE {
+            result = p.blockStmt()
+        } else {
+            result = p.ParseStmt()
+        }
+        return &NodeStmtLoop{Looping: looping, Result: result}
+    }
+    PrintError(5, "Invalid loop stmt")
+    panic("")
+}
+
 func (p *Parser) whileStmt() NodeStmt {
     var condition NodeExpr
     var result NodeStmt
@@ -467,7 +558,8 @@ func (p *Parser) parseParam() NodeStmt {
         p.advance()
         if !p.peek(0).tokenType.isType() { PrintError(7, "Unknown type, you may check if you typedefed that type or created that new class"); panic("") }
         paramType := p.advance()
-        if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected identifier"); panic("") }
+        if p.peek(0).tokenType == VAR_ARGS && p.peek(2).tokenType == RIGHT_PAREN {paramType.Lexeme = paramType.Lexeme + "..."; p.advance()}
+        if p.peek(0).tokenType != IDENTIFIER {fmt.Println(p.peek(0)); PrintError(3, "Expected identifier"); panic("") }
         paramName := p.advance().Lexeme
         
         if p.peek(0).tokenType == COMMA {
@@ -512,7 +604,7 @@ func (p *Parser) funcCall() NodeExpr {
     var argsList []NodeExpr
     if !p.isAtEnd() {
         funcName := p.peek(-1).Lexeme
-        if !p.envi.hasFunc(funcName) {PrintError(6, fmt.Sprintf("Unknown call of undefined function %s", funcName))}
+        if !p.envi.hasFunc(funcName) {p.envi.Unknown.Func[funcName] = p.peek(-3).Lexeme}
         p.advance()
         for p.peek(0).tokenType != RIGHT_PAREN {
             arg := p.expression()
@@ -530,7 +622,7 @@ func (p *Parser) staticStmt() NodeStmt {
         p.advance()
         stmt := p.ParseStmt()
         if stmt, ok := stmt.(*NodeStmtFuncInit); ok {
-            p.envi.Static[stmt.Name] = true
+            p.envi.addStatic(stmt.Name)
             fmt.Println("Static func: ", stmt.Name, p.envi.Static[stmt.Name])
         }
         return &NodeStaticStmt{Stmt: stmt}
@@ -605,6 +697,7 @@ func (p *Parser) packageDef() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
         name := p.advance().Lexeme
+        p.Package = name
         if p.advance().tokenType != SEMICOLON {PrintError(8, "Missing Semicolon"); panic("")}
         return &NodeStmtPkg{Name: name}
     }
@@ -619,13 +712,16 @@ func (p *Parser) importPkg() NodeStmt {
         if p.peek(0).tokenType == LEFT_BRACE {
             p.advance()
             for p.peek(0).tokenType != RIGHT_BRACE {
-                pathes = append(pathes, p.peek(0).Lexeme)
+                pathes = append(pathes, "\"" + p.peek(0).Lexeme[1:len(p.peek(0).Lexeme)-1] + ".h" + "\"")
+                p.advance()
                 if p.peek(0).tokenType == COMMA {p.advance()}
             }
         } else if p.peek(0).tokenType == STRING {
-            pathes = append(pathes, p.peek(0).Lexeme)
+            pathes = append(pathes, "\"" + p.peek(0).Lexeme[1:len(p.peek(0).Lexeme)-1] + ".h" + "\"")
+            p.advance()
             if p.peek(0).tokenType != SEMICOLON {PrintError(5, "Something")}
         }
+        p.advance()
         return &NodeImport{Names: pathes}
     }
     PrintError(5, "Invalid Package Definition")

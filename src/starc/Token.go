@@ -26,7 +26,7 @@ func (t TokenType) isDigitType() bool {
 }
 
 func (t TokenType) isBoolOperator() bool {
-    return t >= BANG_EQUAL && t <= LESS_EQUAL && t != EQUAL
+    return t >= BANG_EQUAL && t <= LESS_EQUAL
 }
 
 func (t TokenType) isAssignOperator() bool {
@@ -46,7 +46,7 @@ func (t TokenType) isProperty() bool {
 }
 
 func (t TokenType) isMemManage() bool {
-    return t >= MEMORY && t <= FREE
+    return t >= MEMORY && t <= SIZE
 }
 
 const (
@@ -67,10 +67,10 @@ const (
     SLASH
     STAR
     
-    //One or two char tokens
+    //One or more char tokens
     BANG
-    BANG_EQUAL
     EQUAL
+    BANG_EQUAL
     EQUAL_EQUAL
     GREATER
     GREATER_EQUAL
@@ -82,6 +82,8 @@ const (
     SLASH_EQUAL
     RIGHT_ARROW
     CONCAT
+    VAR_ARGS
+    SCOPE_RESOLVE
     
     //Literals
     ARRAY
@@ -152,6 +154,7 @@ const (
     GOTO
     IF
     IMPORT
+    LOOP
     NOT
     NULL
     OR
@@ -186,6 +189,7 @@ const (
     MEMORY
     CLEAN
     FREE
+    SIZE
     
     EOF
 )

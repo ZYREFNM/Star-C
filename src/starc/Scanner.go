@@ -60,6 +60,7 @@ var keywords = map[string]TokenType{
     "if":IF,
     "import":IMPORT,
     "include":INCLUDE,
+    "loop":LOOP,
     "memory":MEMORY,
     "not":NOT,
     "null":NULL,
@@ -71,6 +72,7 @@ var keywords = map[string]TokenType{
     "prv":PRIVATE,
     "return":RETURN,
     "set":SET,
+    "size":SIZE,
     "super":SUPER,
     "static":STATIC,
 	"struct":STRUCT,
@@ -112,10 +114,17 @@ func (s *Scanner) scanToken() {
             s.addToken(tokenType); break
     	case '(': s.addToken(LEFT_PAREN); break;
     	case ')': s.addToken(RIGHT_PAREN); break;
+        case '[': s.addToken(LEFT_BRACKET); break;
+        case ']': s.addToken(RIGHT_BRACKET); break;
     	case '{': s.addToken(LEFT_BRACE); break;
     	case '}': s.addToken(RIGHT_BRACE); break;
     	case ',': s.addToken(COMMA); break;
-    	case '.': s.addToken(DOT); break;
+    	case '.':
+            tokenType := DOT
+            if s.match('.') && s.match('.') {
+                tokenType = VAR_ARGS
+            }
+            s.addToken(tokenType)
     	case '-':
         	tokenType := MINUS;
             if s.match('>') {
@@ -131,7 +140,12 @@ func (s *Scanner) scanToken() {
             }
         	s.addToken(tokenType); break;
     	case ';': s.addToken(SEMICOLON); break;
-    	case ':': s.addToken(COLON); break
+    	case ':':
+            tokenType := COLON
+            if s.match(':') {
+                tokenType = SCOPE_RESOLVE
+            }
+            s.addToken(tokenType); break
         case '$': s.addToken(DOLLAR); break
         case '*':
         	tokenType := STAR
