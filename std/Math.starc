@@ -2,6 +2,23 @@ package Math;
 
 const float64 PI = 3.14;
 
-func float64 pow(float64 val) {
-    return val * val;
+func float64 pow(float64 val, int power) {
+    var float64 res;
+    if (power == 0) return 1;
+    if (power == 1) return val;
+    res = val;
+    loop [power] {
+        res = res * val;
+    }
+    return res;
+}
+
+func float64 clamp(float64 val, float64 min, float64 max) {
+    if (val < min) val = min;
+    if (val > max) val = max;
+    return val;
+}
+
+func float64 test(int val, int nig) {
+    return 2.0;
 }

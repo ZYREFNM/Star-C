@@ -4,10 +4,26 @@ import {
     "Math"
 }
 
-func int main() {
-    loop[10000] {
-        IO::Output.print("\033[2J\033[1;1H");
-        IO::Output.print("*");
+class Player {
+    var <set, get> float64 health {
+        set(float64 value) {
+            health = Math::clamp(value, 0.0, 100.0);
+        }
+        get() {
+            return health;
+        }
     }
+    var <get> float64 dmg {
+        get() {
+            dmg = dmg + 5;
+            return dmg;
+        }
+    }
+}
+
+func int main() {
+    var Player player;
+    //player.set<health(5.0)>;
+    //player.get<health(), dmg()>;
     return 0;
 }

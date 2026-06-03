@@ -67,7 +67,6 @@ var keywords = map[string]TokenType{
     "or":OR,
     "optional":OPTIONAL,
     "package":PACKAGE,
-    "print":PRINT,
     "pub":PUBLIC,
     "prv":PRIVATE,
     "return":RETURN,

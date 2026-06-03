@@ -160,7 +160,6 @@ const (
     OR
     OPTIONAL
     PACKAGE
-    PRINT
     RETURN
     SUPER
     STATIC

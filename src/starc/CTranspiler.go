@@ -64,12 +64,46 @@ func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName st
     }
 }
 
-func (t *Transpiler) matchProperty(Property string, varName string, varType string) string {
+func (t *Transpiler) basicProperty(Prop string, varName string, varType string, value string) string {
+    switch Prop {
+        case "get": return fmt.Sprintf("{\nreturn %s;\n}", varName)
+        case "set": return fmt.Sprintf("{\nif (%s) {\n%s = %s;\n}\n}", varName, varName, value)
+        default: return ""
+    }
+}
+
+func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string, varType string, Header bool) string {
     var class string = t.currentClass
+    var Property string
+    var defaultValue string
+    var code string
     if t.currentClass != "" {class += "_";}
+    if name, ok := Attributes[2].(string); ok {Property = name}
+    if params, ok := Attributes[0].([]NodeStmt); ok {
+        if paramOne, isOk := params[0].(NodeStmt); isOk {
+            if param, isParam := paramOne.(*NodeStmtVar); isParam {
+                defaultValue = param.Name
+            }
+        }
+    }
+    if Header {
+        code = ";"
+    } else {
+        if attributes, ok := Attributes[1].([]NodeStmt); ok {
+            if len(attributes) == 0 {
+                code = t.basicProperty(Property, varName, varType, defaultValue)
+            } else {
+                code += "{\n"
+                for _, att := range attributes {
+                    code += "    " + t.TranslateC(att) + "\n"
+                }
+                code += "}\n"
+            }
+        }
+    }
     switch Property {
-        case "get": return fmt.Sprintf("%s %s%s_get(%s %s) {\n	return %s;\n}", varType, class, varName, varType, varName, varName)
-        case "set": return fmt.Sprintf("void %s_set(%s value) {\n	%s = value;\n}", varName, varType, varName)
+        case "get": return fmt.Sprintf("%s %s%s_get(%s %s)%s", varType, class, varName, varType, varName, code)
+        case "set": return fmt.Sprintf("void %s_set(%s value)%s", varName, varType, code)
         default: return ""
     }
 }
@@ -101,8 +135,8 @@ func (t *Transpiler) TranslateH(node Node) string {
             if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.TranslateH(n.Value))}
             if n.Properties != nil {
                 t.HglobalFuncs += "\n"
-                for _, prop := range n.Properties {
-                	t.HglobalFuncs += t.matchProperty(prop, n.Name, Type) + "\n"
+                for key, prop := range n.Properties {
+                	t.HglobalFuncs += t.matchProperty(key, prop, n.Name, Type, true) + "\n"
                 }
             }
         	code := fmt.Sprintf("%s %s%s", Type, n.Name, varEnd)
@@ -219,8 +253,8 @@ func (t *Transpiler) TranslateC(node Node) string {
             if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.TranslateC(n.Value))}
             if n.Properties != nil {
                 t.CglobalFuncs += "\n"
-                for _, prop := range n.Properties {
-                	t.CglobalFuncs += t.matchProperty(prop, n.Name, Type) + "\n"
+                for key, prop := range n.Properties {
+                	t.CglobalFuncs += t.matchProperty(key, prop, n.Name, Type, false) + "\n"
                 }
             }
         	code := fmt.Sprintf("%s %s%s", Type, n.Name, varEnd)
@@ -233,12 +267,6 @@ func (t *Transpiler) TranslateC(node Node) string {
         case *NodeStmtConst:
             var code string
         	Type := t.matchType(n.Type.Lexeme)
-            if n.Properties != nil {
-                t.CglobalFuncs += "\n"
-                for _, prop := range n.Properties {
-                	t.CglobalFuncs += t.matchProperty(prop, n.Name, Type) + "\n"
-                }
-            }
             code = fmt.Sprintf("const %s %s = %s;", Type, n.Name, t.TranslateC(n.Value))
             if n.Global {
                 t.CglobalVars += code
@@ -260,16 +288,6 @@ func (t *Transpiler) TranslateC(node Node) string {
             }
             code += "}"
         	return code
-            
-        case *NodeStmtPrint:
-        	var list string
-            var format string
-        	for _, expr := range n.Expressions {
-                list += fmt.Sprintf("%s, ", t.TranslateC(expr))
-                format += "%s"
-            }
-            list = list[0:len(list)-2]
-        	return fmt.Sprintf("printf(\"%s\\n\", %s);", format, list)
             
         case *NodeStmtReturn:
         	if n.Value == nil {return "return;"}

@@ -154,7 +154,7 @@ func (n *NodeVariable) Children() []Node {
 
 type NodeStmtVar struct {
     Name string
-    Properties []string
+    Properties map[string][]any
     Type Token
     Value Node
     Global bool
@@ -171,7 +171,6 @@ func (n *NodeStmtVar) Children() []Node {
 
 type NodeStmtConst struct {
     Name string
-    Properties []string
     Type Token
     Value Node
     Global bool
@@ -249,20 +248,6 @@ func (n *NodeStmtReturn) isStmt() {}
 func (n *NodeStmtReturn) Children() []Node {
     var child []Node
     child = append(child, n.Value)
-    return child
-}
-
-
-type NodeStmtPrint struct {
-    Expressions []NodeExpr
-}
-func (n *NodeStmtPrint) isANode() {}
-func (n *NodeStmtPrint) isStmt() {}
-func (n *NodeStmtPrint) Children() []Node {
-    var child []Node
-    for _, expr := range n.Expressions {
-        child = append(child, expr)
-    }
     return child
 }
 

@@ -4,21 +4,20 @@
 #include <stdbool.h>
 #include "src/compiler/runtime.h"
 
-#define PACKAGE "IO"
+
 typedef struct {
 } Input;
-void Input_printf(char* fmt, char* text) {
-	printf(fmt, text);
-}
-void Input_printfln(char* fmt, char* text) {
-	printf(star_concat(fmt, "\n"), text);
-}
 typedef struct {
 } Output;
-
-
-
-int main() {
-	Input_printfln("%s", "Hello, world!");
-	return 0;
+void IO__Output_print(char* text) {
+	printf(text);
 }
+void IO__Output_printf(char* fmt, char* text) {
+	printf(fmt, text);
+}
+void IO__Output_printfln(char* fmt, char* text) {
+	printf(star_concat(fmt, "\n"), text);
+}
+
+
+

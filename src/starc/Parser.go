@@ -61,7 +61,6 @@ func (p *Parser) ParseStmt() NodeStmt {
         case IF: return p.ifStmt()
         case VAR: return p.varAssignment()
         case CONST: return p.constAssignment()
-        case PRINT: return p.printStmt()
         case RETURN: return p.returnStmt()
         case LOOP: return p.loop()
         case WHILE: return p.whileStmt()
@@ -293,13 +292,13 @@ func (p *Parser) expression() NodeExpr {
     return p.comparison()
 }
 
-func (p *Parser) properties() []string {
+func (p *Parser) properties() map[string][]any {
     if !p.isAtEnd() {
-        var propertyList []string
+        var propertyList map[string][]any = make(map[string][]any)
         p.advance()
         for p.peek(0).tokenType != GREATER {
             if !p.peek(0).tokenType.isProperty() {PrintError(6, "Expected property call")}
-            propertyList = append(propertyList, p.peek(0).Lexeme)
+            propertyList[p.peek(0).Lexeme] = nil
             p.advance()
             if p.peek(0).tokenType == COMMA {p.advance()}
         }
@@ -309,14 +308,55 @@ func (p *Parser) properties() []string {
     panic("")
 }
 
+func (p *Parser) propertiesDesc() map[string][]any {
+    var propList map[string][]any = make(map[string][]any)
+    
+    p.advance()
+    fmt.Println("Now in props' Desc")
+    for p.peek(0).tokenType != RIGHT_BRACE {
+        
+        var paramList []NodeStmt
+        var propCode []NodeStmt
+    	var propAttributes []any
+        
+        if !p.peek(0).tokenType.isProperty() {PrintError(5, "Expected a property from this variable")}
+        //First we get the name as the key
+        propName := p.advance().Lexeme
+        fmt.Println("On vient de consommer le nom")
+        //Then we consume all the params and make a slice of the as the first attribute
+        for p.peek(0).tokenType != RIGHT_PAREN {
+            fmt.Println("Ici", p.peek(0))
+            paramList = append(paramList, p.parseParam())
+        }
+        fmt.Println("On continue")
+        p.advance()
+        p.advance()
+        //Then we consume the code between braces as the second attribute
+        for p.peek(0).tokenType != RIGHT_BRACE {
+            fmt.Println("Prop Code")
+            propCode = append(propCode, p.ParseStmt())
+        }
+        fmt.Println("Continuation")
+        p.advance()
+        propAttributes = append(propAttributes, paramList, propCode, propName)
+        propList[propName] = propAttributes
+    }
+    p.advance()
+    return propList
+}
+
 func (p *Parser) varAssignment() NodeStmt {
     var varVal NodeExpr = nil
-    var propertyList []string = nil
+    var propertyList map[string][]any
     
     if !p.isAtEnd() {
         p.advance()
         
-        if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
+        if p.peek(0).tokenType == LESS {
+            propertyList = make(map[string][]any)
+            propertyList = p.properties()
+            p.advance()
+        }
         if !p.isValidType(p.peek(0)) {PrintError(5, "Unsuported form of type for now... to fix"); panic("")}
         varType := p.advance()
         
@@ -327,12 +367,6 @@ func (p *Parser) varAssignment() NodeStmt {
         if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
         //fmt.Println("Ur var in envi", p.envi.Variable[varName])
         
-		for _, prop := range propertyList {
-            propFunc := varName + "_" + prop
-			p.envi.Func[propFunc] = varType.Lexeme
-			//fmt.Println("Key:", propFunc, "Value:", p.envi.Func[propFunc])
-		}
-        
         if p.peek(0).tokenType == EQUAL {
             p.advance()
             varVal = p.expression()
@@ -341,11 +375,23 @@ func (p *Parser) varAssignment() NodeStmt {
         global := false
         if p.envi.isGlobal() {global = true}
         
+        if p.peek(0).tokenType != SEMICOLON && p.peek(0).tokenType != LEFT_BRACE {
+            PrintError(5, "Errounous var end, forgot semicolon or var properties description")
+            panic("")
+        }
+        
+        
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
-            p.envi.Variable[varName] = varType.Lexeme
-            return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal, Global: global}
+        } else {
+            if propertyList == nil {PrintError(5, "No properties added to this variable")}
+            propertyList = p.propertiesDesc()
         }
+        for key, val := range propertyList {
+            propertyList[varName + "_" + key] = val
+		}
+        p.envi.Variable[varName] = varType.Lexeme
+        return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal, Global: global}
     }
     PrintError(8, "Reached End Of File in an invalid variable declaration")
     panic("")
@@ -353,12 +399,10 @@ func (p *Parser) varAssignment() NodeStmt {
 
 func (p *Parser) constAssignment() NodeStmt {
     var constVal NodeExpr = nil
-    var propertyList []string = nil
     
     if !p.isAtEnd() {
         p.advance()
         
-        if p.peek(0).tokenType == LESS {propertyList = p.properties(); p.advance()}
         if !p.isValidType(p.peek(0)) { PrintError(7, "Unknown const type, if new class or type you may want to know if it's in the current scope" + p.peek(0).Lexeme); panic("") }
         constType := p.advance()
         
@@ -366,11 +410,6 @@ func (p *Parser) constAssignment() NodeStmt {
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         constName := p.advance().Lexeme
         if p.envi.hasConst(constName) {PrintError(10, "Const declared twice"); panic("")}
-        
-		for _, prop := range propertyList {
-            propFunc := constName + "_" + prop
-			p.envi.Func[propFunc] = constType.Lexeme
-		}
         
         if p.peek(0).tokenType != EQUAL {
             PrintError(6, "Invalid Const Stmt")
@@ -384,7 +423,7 @@ func (p *Parser) constAssignment() NodeStmt {
         if p.peek(0).tokenType == SEMICOLON {
             p.advance()
             p.envi.Const[constName] = constType.Lexeme
-            return &NodeStmtConst{Name: constName, Properties: propertyList, Type: constType, Value: constVal, Global: global}
+            return &NodeStmtConst{Name: constName, Type: constType, Value: constVal, Global: global}
         }
     }
     PrintError(8, "Reached End Of File in an invalid const declaration")
@@ -406,23 +445,6 @@ func (p *Parser) returnStmt() NodeStmt {
         
     }
     PrintError(8, "Missing semi-colon ';'")
-    panic("")
-}
-
-func (p *Parser) printStmt() NodeStmt {
-    
-    if !p.isAtEnd() {
-        p.advance()
-        var valList []NodeExpr
-        for p.peek(0).tokenType != SEMICOLON {
-            valList = append(valList, p.expression())
-            if p.peek(0).tokenType == COMMA {
-                p.advance()
-            }
-        }
-        return &NodeStmtPrint{Expressions : valList}
-    }
-    PrintError(6, "Unknown litteral or EOF to print")
     panic("")
 }
 
@@ -556,7 +578,8 @@ func (p *Parser) parseParam() NodeStmt {
     
     if !p.isAtEnd() {
         p.advance()
-        if !p.peek(0).tokenType.isType() { PrintError(7, "Unknown type, you may check if you typedefed that type or created that new class"); panic("") }
+        if p.peek(0).tokenType == RIGHT_PAREN { return nil}
+        if !p.isValidType(p.peek(0)) { PrintError(7, "Unknown type" + p.peek(0).Lexeme + ", you may check if you typedefed that type or created that new class"); panic("") }
         paramType := p.advance()
         if p.peek(0).tokenType == VAR_ARGS && p.peek(2).tokenType == RIGHT_PAREN {paramType.Lexeme = paramType.Lexeme + "..."; p.advance()}
         if p.peek(0).tokenType != IDENTIFIER {fmt.Println(p.peek(0)); PrintError(3, "Expected identifier"); panic("") }
@@ -609,6 +632,7 @@ func (p *Parser) funcCall() NodeExpr {
         for p.peek(0).tokenType != RIGHT_PAREN {
             arg := p.expression()
             argsList = append(argsList, arg)
+            if p.peek(0).tokenType == COMMA {p.advance()}
         }
         p.advance()
         return &NodeExprFuncCall{Name: funcName, Args: argsList}
