@@ -326,7 +326,9 @@ func (p *Parser) properties() map[string][]any {
         p.advance()
         for p.peek(0).tokenType != GREATER {
             if !p.peek(0).tokenType.isProperty() {PrintError(6, "Expected property call")}
-            propertyList[p.peek(0).Lexeme] = nil
+            var basicSlice []any
+            basicSlice = append(basicSlice, p.peek(0).Lexeme)
+            propertyList[p.peek(0).Lexeme] = basicSlice
             p.advance()
             if p.peek(0).tokenType == COMMA {p.advance()}
         }
@@ -366,7 +368,7 @@ func (p *Parser) propertiesDesc() map[string][]any {
         }
         fmt.Println("Continuation")
         p.advance()
-        propAttributes = append(propAttributes, paramList, propCode, propName)
+        propAttributes = append(propAttributes, propName, paramList, propCode)
         propList[propName] = propAttributes
     }
     p.advance()

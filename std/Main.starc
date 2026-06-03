@@ -5,15 +5,12 @@ import {
 }
 
 class Player {
-    var <get> float64 health {
-        get() {
-            return this.health;
-        }
-    }
+    var <set, get> string name;
 }
 
 func int main() {
     var Player player;
-    player.health = player.get<health()>;
+    player.set<name("Dark")>;
+    IO::Output.printfln("%s", player.get<name()>);
     return 0;
 }

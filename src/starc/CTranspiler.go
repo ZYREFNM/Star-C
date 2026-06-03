@@ -67,7 +67,7 @@ func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName st
 func (t *Transpiler) basicProperty(Prop string, varName string, varType string, value string) string {
     switch Prop {
         case "get": return fmt.Sprintf("{\nreturn this->%s;\n}", varName)
-        case "set": return fmt.Sprintf("{\nif (%s) {\n%s = %s;\n}\n}", varName, varName, value)
+        case "set": return fmt.Sprintf("{\nif (%s) {\nthis->%s = %s;\n}\n}", value, varName, value)
         default: return ""
     }
 }
@@ -76,42 +76,50 @@ func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string
     var class string = t.currentClass
     var pointer string
     var point string
+    var otherArgs string
     var Property string
     var defaultValue string
     var code string
     if t.currentClass != "" {
-        class += "_";
+        class += "_"
         pointer = t.currentClass
-        point = ""
+        point = "this"
     } else {
         pointer = varType
+        point = varName
     }
-    if name, ok := Attributes[2].(string); ok {Property = name}
-    if params, ok := Attributes[0].([]NodeStmt); ok {
-        if paramOne, isOk := params[0].(NodeStmt); isOk {
-            if param, isParam := paramOne.(*NodeStmtVar); isParam {
-                defaultValue = param.Name
+    if len(Attributes) > 1 {
+        if params, ok := Attributes[1].([]NodeStmt); ok {
+            if paramOne, isOk := params[2].(NodeStmt); isOk {
+                if param, isParam := paramOne.(*NodeStmtVar); isParam {
+                    defaultValue = param.Name
+                }
             }
         }
     }
+    
+    if name, ok := Attributes[0].(string); ok {Property = name}
     if Header {
         code = ";"
     } else {
-        if attributes, ok := Attributes[1].([]NodeStmt); ok {
-            if len(attributes) == 0 {
-                code = t.basicProperty(Property, varName, varType, defaultValue)
-            } else {
+        if len(Attributes) > 1 {
+            if attributes, ok := Attributes[1].([]NodeStmt); ok {
                 code += "{\n"
                 for _, att := range attributes {
                     code += "    " + t.TranslateC(att) + "\n"
                 }
                 code += "}\n"
             }
+        } else {
+            code = t.basicProperty(Property, varName, varType, defaultValue)
         }
     }
+    if otherArgs == "" {
+        otherArgs += fmt.Sprintf("%s value", varType)
+    }
     switch Property {
-        case "get": return fmt.Sprintf("%s %s%s_get(%s* %s)%s", varType, class, varName, , varName, code)
-        case "set": return fmt.Sprintf("void %s_set(%s* value)%s", varName, varType, code)
+        case "get": return fmt.Sprintf("%s %s%s_get(%s* %s)%s", varType, class, varName, pointer, point, code)
+        case "set": return fmt.Sprintf("void %s%s_set(%s* %s, %s)%s", class, varName, pointer, point, otherArgs, code)
         default: return ""
     }
 }
@@ -377,7 +385,6 @@ func (t *Transpiler) TranslateC(node Node) string {
             class := n.Class
             var varName string
             var varParam []string
-            if class != "" {class += "_"}
             
             parPointer := t.TranslateC(n.Expr)
             
@@ -387,7 +394,8 @@ func (t *Transpiler) TranslateC(node Node) string {
                     varParam = append(varParam, t.TranslateC(e))
                 }
             }
-            return fmt.Sprintf("%s%s_get(%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
+            if len(varParam) != 0 {parPointer += ", "}
+            return fmt.Sprintf("%s%s_get(&%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
             return ""
         
         case *NodeStaticStmt:
