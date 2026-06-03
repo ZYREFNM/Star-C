@@ -389,6 +389,7 @@ func (p *Parser) varAssignment() NodeStmt {
         }
         for key, val := range propertyList {
             propertyList[varName + "_" + key] = val
+            delete(propertyList, key)
 		}
         p.envi.Variable[varName] = varType.Lexeme
         return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal, Global: global}

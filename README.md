@@ -4,7 +4,7 @@ It uses a GCC implementation to run but that may changes to run with the Clang c
 
 - ## Version
 	This project is actually instable and doesn't have realeses yet!
-	Currently is in Pre-Alpha version 1.0.0
+	Currently is in Pre-Alpha version 1.1.2
 
 - ## Exemples
 	Simple Hello, world!
