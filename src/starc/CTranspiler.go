@@ -66,7 +66,7 @@ func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName st
 
 func (t *Transpiler) basicProperty(Prop string, varName string, varType string, value string) string {
     switch Prop {
-        case "get": return fmt.Sprintf("{\nreturn %s;\n}", varName)
+        case "get": return fmt.Sprintf("{\nreturn this->%s;\n}", varName)
         case "set": return fmt.Sprintf("{\nif (%s) {\n%s = %s;\n}\n}", varName, varName, value)
         default: return ""
     }
@@ -74,10 +74,18 @@ func (t *Transpiler) basicProperty(Prop string, varName string, varType string, 
 
 func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string, varType string, Header bool) string {
     var class string = t.currentClass
+    var pointer string
+    var point string
     var Property string
     var defaultValue string
     var code string
-    if t.currentClass != "" {class += "_";}
+    if t.currentClass != "" {
+        class += "_";
+        pointer = t.currentClass
+        point = ""
+    } else {
+        pointer = varType
+    }
     if name, ok := Attributes[2].(string); ok {Property = name}
     if params, ok := Attributes[0].([]NodeStmt); ok {
         if paramOne, isOk := params[0].(NodeStmt); isOk {
@@ -102,8 +110,8 @@ func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string
         }
     }
     switch Property {
-        case "get": return fmt.Sprintf("%s %s%s_get(%s %s)%s", varType, class, varName, varType, varName, code)
-        case "set": return fmt.Sprintf("void %s_set(%s value)%s", varName, varType, code)
+        case "get": return fmt.Sprintf("%s %s%s_get(%s* %s)%s", varType, class, varName, , varName, code)
+        case "set": return fmt.Sprintf("void %s_set(%s* value)%s", varName, varType, code)
         default: return ""
     }
 }
@@ -358,16 +366,29 @@ func (t *Transpiler) TranslateC(node Node) string {
                 argsList = append(argsList, t.TranslateC(arg))
             }
             
-            if n.Name == "get" {
-                parPointer = t.TranslateC(n.Parent)
-            }
-            
             //fmt.Println("Static func call: ", n.Name, n.Static)
             if n.Static == true {
                 parPointer = ""
                 multiargs = ""
             }
         	return fmt.Sprintf("%s_%s(%s%s%s)", n.Class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
+        
+        case *NodeExprGetter:
+            class := n.Class
+            var varName string
+            var varParam []string
+            if class != "" {class += "_"}
+            
+            parPointer := t.TranslateC(n.Expr)
+            
+        	for k, v := range n.Vars {
+                varName = k
+                for _, e := range v {
+                    varParam = append(varParam, t.TranslateC(e))
+                }
+            }
+            return fmt.Sprintf("%s%s_get(%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
+            return ""
         
         case *NodeStaticStmt:
             t.static = true

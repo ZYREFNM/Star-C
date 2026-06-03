@@ -138,6 +138,8 @@ func (p *Parser) primary() NodeExpr {
             field := p.advance().Lexeme
             var objName Token = p.peek(-3)
             
+            if class != "" {class += "_"}
+            
             if p.peek(0).tokenType == LEFT_PAREN {
                 p.advance()
                 var argsList []NodeExpr
@@ -151,16 +153,42 @@ func (p *Parser) primary() NodeExpr {
                     if !p.isValidType(objName) {p.envi.Unknown.Type[p.peek(0).Lexeme] = p.Package}
                 //    class = objName.Lexeme
                 }
-                if class != "" {class += "_"}
                 isStatic := p.envi.getStatic(field, object)
                 //fmt.Println("Static ?", field, isStatic, p.envi.Static[field])
                 expr = &NodeExprMethodCall{Class: class + objName.Lexeme, Parent: expr, Name: field, Args: argsList, Static: isStatic}
-                class = p.envi.Func[objName.Lexeme + "_" + field]
+                
+            } else if p.peek(0).tokenType == LESS {
+                
+                if field == "get" || field == "set" {
+                    var varParam []NodeExpr
+                    var varList map[string][]NodeExpr = make(map[string][]NodeExpr)
+                    fmt.Println("Watch out", p.peek(0).Lexeme)
+                    if p.peek(0).tokenType != LESS {PrintError(5, "Missing less sign"); panic("")}
+                    p.advance()
+                    for p.peek(0).tokenType != GREATER {
+                        currentVar := p.advance().Lexeme
+                        p.advance()
+                        for p.peek(0).tokenType != RIGHT_PAREN {
+                            varParam = append(varParam, p.primary()) 
+                            if p.peek(0).tokenType == COMMA {p.advance()}
+                        }
+                        p.advance()
+                        if p.peek(0).tokenType == COMMA {p.advance()}
+                        varList[currentVar] = varParam
+                    }
+                    fmt.Println("Have seen every single variable to get")
+                    p.advance()
+                    switch field {
+                        case "get": return &NodeExprGetter{Class: class, Expr: expr, Vars: varList}
+                        default: break
+                    }
+                }
             } else {
                 symbol := "."
                 if p.envi.Pointer[object] == true {symbol = "->"}
                 expr = &NodeGet{Object: expr, Symbol: symbol, Field: field}
-            }    
+            }
+            class = p.envi.Func[objName.Lexeme + "_" + field]
         }
         fmt.Println(fmt.Sprintf("Expr %v %T", expr, expr))
         return expr

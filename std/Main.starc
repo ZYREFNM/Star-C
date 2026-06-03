@@ -5,25 +5,15 @@ import {
 }
 
 class Player {
-    var <set, get> float64 health {
-        set(float64 value) {
-            health = Math::clamp(value, 0.0, 100.0);
-        }
+    var <get> float64 health {
         get() {
-            return health;
-        }
-    }
-    var <get> float64 dmg {
-        get() {
-            dmg = dmg + 5;
-            return dmg;
+            return this.health;
         }
     }
 }
 
 func int main() {
     var Player player;
-    //player.set<health(5.0)>;
-    //player.get<health(), dmg()>;
+    player.health = player.get<health()>;
     return 0;
 }
