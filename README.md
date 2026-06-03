@@ -4,7 +4,7 @@ It uses a GCC implementation to run but that may changes to run with the Clang c
 
 - ## Version
 	This project is actually instable and doesn't have realeses yet!
-	Currently is in Pre-Alpha version 1.1.2
+	Currently is in Pre-Alpha version 1.2.0
 
 - ## Exemples
 	Simple Hello, world!
@@ -17,3 +17,21 @@ It uses a GCC implementation to run but that may changes to run with the Clang c
         return 0;
     }
     ```
+    Change a player's username in a game and print it
+    ```go
+    package main;
+    import "IO";
+    
+    class Player {
+        var <get, set> string name;
+    }
+    
+    func int main() {
+        var Player newPlayer;
+        newPlayer.set<name("AlphaPlayer111")>;
+        IO::Output.printfln("%s", newPlayer.get<name()>);
+        return 0;
+    }
+    ```
+    ```bash
+    Output: AlphaPlayer111

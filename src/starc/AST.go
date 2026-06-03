@@ -360,6 +360,25 @@ func (n *NodeExprGetter) Children() []Node {
 }
 
 
+type NodeExprSetter struct {
+    Class string
+    Expr NodeExpr
+    Vars map[string][]NodeExpr
+}
+func (n *NodeExprSetter) isANode() {}
+func (n *NodeExprSetter) isExpr() {}
+func (n *NodeExprSetter) Children() []Node {
+    var child []Node
+    child = append(child, n.Expr)
+    for _, paramList := range n.Vars {
+        for _, node := range paramList {
+            child = append(child, node)
+        }
+    }
+    return child
+}
+
+
 type NodeStmtConstructor struct {
     Return string
     Param []NodeStmt

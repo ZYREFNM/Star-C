@@ -67,7 +67,7 @@ func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName st
 func (t *Transpiler) basicProperty(Prop string, varName string, varType string, value string) string {
     switch Prop {
         case "get": return fmt.Sprintf("{\nreturn this->%s;\n}", varName)
-        case "set": return fmt.Sprintf("{\nif (%s) {\nthis->%s = %s;\n}\n}", value, varName, value)
+        case "set": return fmt.Sprintf("{\nif (value) {\nthis->%s = value;\n}\n}", varName)
         default: return ""
     }
 }
@@ -397,6 +397,25 @@ func (t *Transpiler) TranslateC(node Node) string {
             if len(varParam) != 0 {parPointer += ", "}
             return fmt.Sprintf("%s%s_get(&%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
             return ""
+        
+        case *NodeExprSetter:
+            class := n.Class
+            var varName string
+            var varParam []string
+            
+            parPointer := t.TranslateC(n.Expr)
+            
+        	for k, v := range n.Vars {
+                varName = k
+                for _, e := range v {
+                    varParam = append(varParam, t.TranslateC(e))
+                }
+            }
+            if len(varParam) != 0 {
+                parPointer += ", "
+            }
+            return fmt.Sprintf("%s%s_set(&%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
+            return ""    
         
         case *NodeStaticStmt:
             t.static = true

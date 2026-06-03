@@ -180,6 +180,7 @@ func (p *Parser) primary() NodeExpr {
                     p.advance()
                     switch field {
                         case "get": return &NodeExprGetter{Class: class, Expr: expr, Vars: varList}
+                        case "set": return &NodeExprSetter{Class: class, Expr: expr, Vars: varList}
                         default: break
                     }
                 }

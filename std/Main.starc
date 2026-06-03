@@ -3,14 +3,14 @@ import {
     "IO",
     "Math"
 }
-
+    
 class Player {
-    var <set, get> string name;
+    var <get, set> string name;
 }
-
+    
 func int main() {
-    var Player player;
-    player.set<name("Dark")>;
-    IO::Output.printfln("%s", player.get<name()>);
+    var Player newPlayer;
+    newPlayer.set<name("AlphaPlayer111")>;
+    IO::Output.printfln("%s", newPlayer.get<name()>);
     return 0;
 }
