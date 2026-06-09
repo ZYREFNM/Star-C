@@ -16,7 +16,7 @@ type Scanner struct {
 var dataType = map[string]TokenType{
 	"array":ARRAY_TYPE,
     "bool":BOOL_TYPE,
-	"dict":DICTIONARY_TYPE,
+	"map":MAP_TYPE,
 	"int":INT_TYPE,
 	"int8":INT8_TYPE,
 	"int16":INT16_TYPE,
@@ -66,7 +66,7 @@ var keywords = map[string]TokenType{
     "null":NULL,
     "or":OR,
     "optional":OPTIONAL,
-    "package":PACKAGE,
+    "module":MODULE,
     "pub":PUBLIC,
     "prv":PRIVATE,
     "return":RETURN,

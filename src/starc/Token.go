@@ -49,6 +49,13 @@ func (t TokenType) isMemManage() bool {
     return t >= MEMORY && t <= SIZE
 }
 
+func (t TokenType) equals(Types ...TokenType) bool {
+    for _, token := range Types {
+        if token == t {return true} else {continue}
+    }
+    return false
+}
+
 const (
     //Single char tokens
     LEFT_PAREN TokenType = iota
@@ -88,7 +95,8 @@ const (
     //Literals
     ARRAY
     BOOL
-    DICTIONARY
+    BYTE
+    MAP
     IDENTIFIER
     INT
     INT8
@@ -115,7 +123,7 @@ const (
     //Data-Type
     ARRAY_TYPE
     BOOL_TYPE
-    DICTIONARY_TYPE
+    MAP_TYPE
     IDENTIFIER_TYPE
     INT_TYPE
     INT8_TYPE
@@ -148,18 +156,21 @@ const (
     CLASS
     DEFAULT
     ELSE
+    ENUM
+    EXTENDS
     FALSE
     FUNC
     FOR
     GOTO
     IF
     IMPORT
+    IOTA
     LOOP
     NOT
     NULL
     OR
     OPTIONAL
-    PACKAGE
+    MODULE
     RETURN
     SUPER
     STATIC

@@ -28,7 +28,7 @@ func main() {
     
     fmt.Println(fmt.Sprintf("\n%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
     hadImplementsError = false
-    if len(os.Args) >= 4 {
+    if len(os.Args) >= 5 {
         filePath = os.Args[3]
         if !strings.HasSuffix(filePath, ".starc") {
             PrintError(2, "Try to run a .starc file")
@@ -36,23 +36,19 @@ func main() {
         if os.Args[4] != "orbit" || len(os.Args) < 5 {PrintError(0, "Expected orbit or commets")}
         for _, e := range os.Args[4:len(os.Args)] {
             if e == "orbit" {continue}
-            //fmt.Println("E:", e, e[:len(e)-6])
-            //fmt.Println("Est-ce vide ?", subFiles)
             subFiles = append(subFiles, e)
-            //fmt.Println("Regarde ici", e, len(os.Args), os.Args)
         }
+        subFiles = append(subFiles, "std/Math.starc", "std/IO.starc")
         runCommand(filePath, subFiles)
     }else if len(os.Args) == 2{
         fmt.Println("Updated")
-    }else if len(os.Args) == 3 {
-        if len(os.Args) < 4 {
-            runCommand(filePath, subFiles)
-            PrintError(0, "")
-        }
+    }else if len(os.Args) == 4 {
+        filePath = os.Args[3]
         filePath = os.Args[len(os.Args)-1]
         if !strings.HasSuffix(filePath, ".starc") {
             PrintError(2, "Try to run a .starc file")
         }
+        subFiles = append(subFiles, "std/Math.starc", "std/IO.starc")
         runCommand(filePath, subFiles)
     }
     os.Exit(0);
@@ -173,6 +169,16 @@ func ignite(main string, extraSource []string) {
     cmd := exec.Command("gcc",  args...)
     if err := cmd.Run(); err != nil {
 	    fmt.Println("GCC error:", err)
+    }
+    if !KEEP_C_FILES {
+        for _, genFiles := range filesNames {
+            os.Remove(genFiles + ".c")
+        }
+    }
+    if !KEEP_H_FILES {
+        for _, genFiles := range filesNames {
+            os.Remove(genFiles + ".h")
+        }
     }
 }    
 

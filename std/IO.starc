@@ -1,4 +1,4 @@
-package IO;
+module IO;
 
 class Input {
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-    //"fmt"
+    "fmt"
 )
 
 type Environnement struct {
@@ -13,6 +13,9 @@ type Environnement struct {
     Pointer map[string]bool
     Func map[string]string
     Static map[string]bool
+    Public map[string]string
+    Protected map[string]string
+    Private map[string]string
     Classes map[string]*Environnement
     Parent *Environnement
     Unknown *UnknownLocker
@@ -37,6 +40,9 @@ func InitEnvi() *Environnement {
         Pointer: make(map[string]bool),
         Func: make(map[string]string),
         Static: make(map[string]bool),
+        Public: make(map[string]string),
+        Protected: make(map[string]string),
+        Private: make(map[string]string),
         Classes: make(map[string]*Environnement),
         Unknown: InitUnknownLocker(),
     }
@@ -150,8 +156,9 @@ func (e *Environnement) SearchUnknownPack() []string {
     var packs []string
     if e.Unknown != nil {
         if e.Unknown.Type != nil {
-            for unknown := range e.Unknown.Type {
-                packs = append(packs, unknown)
+            for _, v := range e.Unknown.Type {
+                fmt.Println("UNKNOWN TYPE", v)
+                packs = append(packs, v)
             }
         }
         if e.Unknown.Func != nil {

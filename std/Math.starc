@@ -1,4 +1,4 @@
-package Math;
+module Math;
 
 const float64 PI = 3.14;
 

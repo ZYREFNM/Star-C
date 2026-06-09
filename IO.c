@@ -12,12 +12,15 @@ typedef struct {
 void IO__Output_print(char* text) {
 	printf(text);
 }
+
 void IO__Output_printf(char* fmt, char* text) {
 	printf(fmt, text);
 }
+
 void IO__Output_printfln(char* fmt, char* text) {
 	printf(star_concat(fmt, "\n"), text);
 }
+
 
 
 

@@ -30,7 +30,6 @@ func (l *Linker) MethodLook(node Node) {
     if method, ok := node.(*NodeExprMethodCall); ok {
         if l.Statics[method.Name] == true {
             method.Static = true
-            //fmt.Println("Méthode Modifié!")
         }
     }
     
@@ -75,6 +74,7 @@ func (l *Linker) checkPkg() {
         packList := envi.SearchUnknownPack()
         if envi == nil {continue}
         for _, pack := range packList {
+            fmt.Println("Import pack", pack)
             if l.KnownPackages[pack] != true {
                 PrintError(5, "Invalid Package " + pack)
             }
@@ -82,9 +82,14 @@ func (l *Linker) checkPkg() {
     }
 }
 
+func (l *Linker) addComplementModules() {
+    return
+}
+
 func (l *Linker) Link() {
     l.checkPkg()
     l.checkStatic()
+    l.addComplementModules()
 }
 
 func (l *Linker) GetLink() [][]Node {
