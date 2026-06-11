@@ -2,7 +2,11 @@ module Math;
 
 const float64 PI = 3.14;
 
-func float64 pow(float64 val, int power) {
+func float32 randf32(float32 min, float32 max) {
+    return float32..(C:function rand()) / float32..(RAND_MAX);
+}
+
+func float64 powf64(float64 val, int power) {
     var float64 res;
     if (power == 0) return 1;
     if (power == 1) return val;
@@ -13,12 +17,8 @@ func float64 pow(float64 val, int power) {
     return res;
 }
 
-func float64 clamp(float64 val, float64 min, float64 max) {
+func float64 clampf64(float64 val, float64 min, float64 max) {
     if (val < min) val = min;
     if (val > max) val = max;
     return val;
-}
-
-func float64 test(int val, int nig) {
-    return 2.0;
 }

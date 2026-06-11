@@ -41,6 +41,14 @@ func (t TokenType) isAction() bool {
     return t >= CALL && t <= INCLUDE
 }
 
+func (t TokenType) isStmtCall() bool {
+    return t >= WRITE && t <= INCLUDE
+}
+
+func (t TokenType) isExprCall() bool {
+    return t >= CALL && t <= FUNCCALL
+}
+
 func (t TokenType) isProperty() bool {
     return t >= GET && t <= SET
 }
@@ -90,6 +98,7 @@ const (
     RIGHT_ARROW
     CONCAT
     VAR_ARGS
+    TYPE_CONV
     SCOPE_RESOLVE
     
     //Literals
@@ -193,6 +202,8 @@ const (
     //C-Caller's actions
     CALL
     FUNCCALL
+    //------
+    WRITE
     INCLUDE
     
     //Memory allocation keywords

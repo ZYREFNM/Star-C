@@ -4,6 +4,7 @@ import (
 	"fmt"
     "os"
     "strings"
+    "path/filepath"
     //"slices"
 )
 
@@ -11,6 +12,7 @@ type Transpiler struct {
     fileName string
     currentClass string
     Package string
+    OtherModule bool
     importField string
     static bool
     CglobalVars string
@@ -261,6 +263,15 @@ func (t *Transpiler) TranslateH(node Node) string {
             t.HglobalVars += fmt.Sprintf("typedef struct {\n%s} %s;\n%s", classVars, className, classCode)
             return ""
         
+        case *NodeImport:
+            var importCode string
+            for _, pkg := range n.Names {
+                importCode += "#include " + pkg + "\n"
+                fmt.Println("Your pack", pkg)
+            }
+            t.importField += importCode
+            return ""
+        
         default: return ""
     }
 }
@@ -279,7 +290,16 @@ func (t *Transpiler) TranslateC(node Node) string {
             
         case *NodeLiteral: return fmt.Sprintf("%v", n.Value)
         
-        case *NodeUnary: return fmt.Sprintf("%s (%s)", n.Operator, t.TranslateC(n.Right))
+        case *NodeUnary:
+            op := n.Operator
+            right := t.TranslateC(n.Right)
+            if op != "-" && op != "!" {
+                op = t.matchType(op, "", nil)
+                op = "(" + op + ")"
+            } else {
+                right = "(" + right + ")"
+            }
+            return fmt.Sprintf("%s%s", op, right)
         
         case *NodeExprConcat:
         	return fmt.Sprintf("star_concat(%s, %s)", t.TranslateC(n.To), t.TranslateC(n.From))
@@ -287,19 +307,18 @@ func (t *Transpiler) TranslateC(node Node) string {
         case *NodeGroup: return fmt.Sprintf("(%s)", t.TranslateC(n.Expression))
         
         case *NodeGet:
-        	symbol := "."
             target := t.TranslateC(n.Object)
-        	if target == "this" {symbol = "->"}
             //fmt.Println(fmt.Sprintf("Getting -> %s %s %s", target, symbol, n.Field))
-            return fmt.Sprintf("%s%s%s", target, symbol, n.Field)
+            return fmt.Sprintf("%s%s%s", target, n.Symbol, n.Field)
         
         case *NodePkgResolve:
+            t.OtherModule = true
             pkg := n.Pkg
             if pkg == "" {
                 pkg = t.Package
             }
             res := t.TranslateC(n.Resolution)
-            //fmt.Println("Resolution", pkg, res)
+            t.OtherModule = false
             return pkg + "__" + res
         
         case *NodeStmtVar:
@@ -363,8 +382,12 @@ func (t *Transpiler) TranslateC(node Node) string {
         case *NodeStmtReturn:
         	if n.Value == nil {return "return;"}
             return fmt.Sprintf("return %s;", t.TranslateC(n.Value))
+        
         case *NodeStmtC:
             return t.matchAction(n.Action, n.Called, n.CallerName) + ";"
+        
+        case *NodeExprC:
+            return t.matchAction(n.Action, n.Called, n.CallerName)
         
         case *NodeStmtIf:
         	condition := t.TranslateC(n.Condition)
@@ -438,12 +461,15 @@ func (t *Transpiler) TranslateC(node Node) string {
             return fmt.Sprintf("%s* %s_new(%s) %s", Type, Type, strings.Join(list, ", "), code)
         case *NodeExprFuncCall:
         	var argsList []string
+            var module string
+            if t.OtherModule == false {module = t.Package + "__"}
             for _, arg := range n.Args {
                 argsList = append(argsList, t.TranslateC(arg))
             }
-        	return fmt.Sprintf("%s(%s)", n.Name, strings.Join(argsList, ", "))
+        	return fmt.Sprintf("%s%s(%s)", module, n.Name, strings.Join(argsList, ", "))
         
         case *NodeExprMethodCall:
+            var class string = n.Class
         	var argsList []string
             var parPointer string = "&" + t.TranslateC(n.Parent)
             var multiargs string
@@ -452,12 +478,19 @@ func (t *Transpiler) TranslateC(node Node) string {
                 argsList = append(argsList, t.TranslateC(arg))
             }
             
-            //fmt.Println("Static func call: ", n.Name, n.Static)
-            if n.Static == true {
+            fmt.Println("NAME", n.Name)
+            
+            if n.Name == "new" {
+                class = "*" + class
+            } else if n.Name == "new*" {
+                n.Name = "new"
+            }
+            
+            if n.Static == true || n.Name == "new"{
                 parPointer = ""
                 multiargs = ""
             }
-        	return fmt.Sprintf("%s_%s(%s%s%s)", n.Class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
+        	return fmt.Sprintf("%s_%s(%s%s%s)", class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
         
         case *NodeExprGetter:
             class := n.Class
@@ -557,9 +590,26 @@ func (t *Transpiler) TranslateC(node Node) string {
         
         case *NodeImport:
             var importCode string
-            for _, pkg := range n.Names {
-                importCode += "#include " + pkg + "\n"
-                fmt.Println("Your pack", pkg)
+            var Modules []string
+            for _, module := range n.Names {
+                fmt.Println(module, module[len(module)-5:len(module)], "MODULE", module[len(module)-5:len(module)] == "/*.h\"")
+                if strings.HasSuffix(module, "/*.h\"") {
+                    module = strings.TrimPrefix(module, "\".")
+                    dir := module[:len(module)-5]
+                    fmt.Println("Yes", dir)
+                    files := DirFiles(dir)
+                    for _, file := range files {
+                        file = "\"" + module[:len(module)-4] + file[1:len(file)-1] + "\""
+                        fmt.Println("TES FICHIERS", file)
+                        if !strings.HasSuffix(file, ".starc") {continue}
+                        fmt.Println("TES FICHIERS APRÈS", file)
+                        Modules = append(Modules, strings.TrimSuffix(file, ".starc"))
+                    }
+                } else {fmt.Println("Non"); Modules = append(Modules, module)}
+            }
+            for _, module := range Modules {
+                importCode += "#include " + module + "\n"
+                fmt.Println("Your pack", module)
             }
             t.importField += importCode
             return ""
@@ -571,21 +621,17 @@ func (t *Transpiler) TranslateC(node Node) string {
 func (t *Transpiler) GenerateCCode(nodes []Node) {
     var CBuilder strings.Builder
     var HBuilder strings.Builder
-    CBuilder.WriteString("#include <stdlib.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"src/compiler/runtime.h\"\n")
+    CBuilder.WriteString("#include <stdlib.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"../src/compiler/runtime.h\"\n")
     var mainContents string
     var headerContents string
     for _, node := range nodes {
-        //fmt.Println(fmt.Sprintf("Node: %s of type %T", t.TranslateC(node), node))
         line := t.TranslateC(node)
         head := t.TranslateH(node)
-        //fmt.Println("Line: ", line)
-        //fmt.Println("Head: ", head)
         mainContents += fmt.Sprintf("%s\n", line)
         headerContents += fmt.Sprintf("%s\n", head)
     }
-    fmt.Println("global funcs", t.HglobalFuncs)
     CBuilder.WriteString(fmt.Sprintf("%s\n\n%s%s%s", t.importField, t.CglobalVars, t.CglobalFuncs, mainContents))
-    HBuilder.WriteString(fmt.Sprintf("#ifndef %s_H\n#define %s_H\n", strings.ToUpper(t.fileName), strings.ToUpper(t.fileName)))
+    HBuilder.WriteString(fmt.Sprintf("#ifndef %s_H\n#define %s_H\n", strings.ToUpper(filepath.Base(t.fileName)), strings.ToUpper(filepath.Base(t.fileName))))
     HBuilder.WriteString(fmt.Sprintf("%s\n%s\n%s\n%s\n#endif", t.importField, t.HglobalVars, t.HglobalFuncs, headerContents))
     t.WriteInFile(HBuilder.String(), ".h")
 	t.WriteInFile(CBuilder.String(), ".c")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+    "strings"
 )
 
 type Parser struct {
@@ -48,7 +49,10 @@ func (p *Parser) ParseStmt() NodeStmt {
         case FUNC: return p.funcInit()
         case TYPEDEF: return p.typeDef()
         case CLASS: return p.classDef()
-        case CCALL: return p.ccall()
+        case CCALL:
+            if p.peek(1).tokenType.isStmtCall() {
+                return p.ccall()
+            }
         case PRIVATE, PUBLIC: return p.scopeAccess()
         case STATIC: return p.staticStmt()
         case MODULE: return p.packageDef()
@@ -81,7 +85,7 @@ func (p *Parser) advance() Token {
 }
 
 func (p *Parser) isValidType(Type Token) bool {
-    return Type.tokenType.isType() || p.envi.hasType(Type.Lexeme) || Type.tokenType.equals(STRUCT, ENUM, VOID, LEFT_BRACKET) 
+    return Type.tokenType.isType() || p.envi.hasType(Type.Lexeme) || Type.tokenType.equals(STRUCT, ENUM, VOID, LEFT_BRACKET) || p.peek(1).tokenType.equals(SCOPE_RESOLVE)
 }
 
 func (p *Parser) parseType() NodeExpr {
@@ -179,7 +183,7 @@ func (p *Parser) primary() NodeExpr {
             var objName Token = p.peek(-3)
             
             if class != "" {class += "_"}
-            
+            if p.peek(0).tokenType.equals(STAR) {field += p.advance().Lexeme}
             if p.peek(0).tokenType == LEFT_PAREN {
                 p.advance()
                 var argsList []NodeExpr
@@ -191,10 +195,8 @@ func (p *Parser) primary() NodeExpr {
                 p.advance()
                 if field == "new" {
                     if !p.isValidType(objName) {p.envi.Unknown.Type[p.peek(0).Lexeme] = p.Package}
-                //    class = objName.Lexeme
                 }
                 isStatic := p.envi.getStatic(field, object)
-                //fmt.Println("Static ?", field, isStatic, p.envi.Static[field])
                 expr = &NodeExprMethodCall{Class: class + objName.Lexeme, Parent: expr, Name: field, Args: argsList, Static: isStatic}
                 
             } else if p.peek(0).tokenType == LESS {
@@ -233,7 +235,8 @@ func (p *Parser) primary() NodeExpr {
                 return &NodeExprListIndex{Expr: expr, Index: index}
             } else {
                 symbol := "."
-                if p.envi.Pointer[object] == true {symbol = "->"}
+                if p.envi.getPointer(object) {symbol = "->"}
+                fmt.Println("Pointer:", object, p.envi.Pointer[object], "- Symbol:", symbol)
                 expr = &NodeGet{Object: expr, Symbol: symbol, Field: field}
             }
             class = p.envi.Func[objName.Lexeme + "_" + field]
@@ -248,6 +251,30 @@ func (p *Parser) primary() NodeExpr {
             p.advance()
             return &NodeGroup{Expression: expr}
         }
+    }
+    
+    if token.tokenType.equals(CCALL) {
+        var callerName string
+        var called []NodeExpr
+        if !p.peek(0).tokenType.isExprCall() {fmt.Println(p.peek(0)); PrintError(6, "Expected action for the C-Expr-Caller found " + p.peek(0).Lexeme); panic("")}
+        actionName := p.advance().Lexeme
+        switch actionName {
+        case "call":
+        case "function":
+            if p.peek(0).tokenType != IDENTIFIER {PrintError(3, "Expected Identifier"); panic("")}
+            callerName = p.advance().Lexeme
+            //fmt.Println("Caller", callerName)
+            if p.peek(0).tokenType != LEFT_PAREN {PrintError(3, "Expected left parenthesize for C function call"); panic("")}
+            p.advance()
+            for p.peek(0).tokenType != RIGHT_PAREN {
+                called = append(called, p.expression())
+                if p.peek(0).tokenType == COMMA {p.advance()}
+            }
+            p.advance()
+            break
+        }
+        //fmt.Println("Token actuel", p.peek(0))
+        return &NodeExprC{Action: actionName, Called: called, CallerName: callerName}
     }
     
     if token.tokenType == DOLLAR {
@@ -310,10 +337,17 @@ func (p *Parser) unary() NodeExpr {
     //fmt.Println("Running through unary")
     token := p.peek(0)
     
-    if token.tokenType == MINUS || token.tokenType == BANG {
+    if token.tokenType == MINUS || token.tokenType == BANG || token.tokenType.isType() {
+        if token.tokenType.isType() {
+            p.advance()
+            p.advance()
+        }
         p.advance()
         
         right := p.unary()
+        if token.tokenType.isType() {
+            p.advance()
+        }
         
         return &NodeUnary{Operator: token.Lexeme, Right: right}
     }
@@ -399,7 +433,6 @@ func (p *Parser) propertiesDesc() map[string][]any {
     var propList map[string][]any = make(map[string][]any)
     
     p.advance()
-    fmt.Println("Now in props' Desc")
     for p.peek(0).tokenType != RIGHT_BRACE {
         
         var paramList []NodeStmt
@@ -409,21 +442,16 @@ func (p *Parser) propertiesDesc() map[string][]any {
         if !p.peek(0).tokenType.isProperty() {PrintError(5, "Expected a property from this variable")}
         //First we get the name as the key
         propName := p.advance().Lexeme
-        fmt.Println("On vient de consommer le nom")
         //Then we consume all the params and make a slice of the as the first attribute
         for p.peek(0).tokenType != RIGHT_PAREN {
-            fmt.Println("Ici", p.peek(0))
             paramList = append(paramList, p.parseParam())
         }
-        fmt.Println("On continue")
         p.advance()
         p.advance()
         //Then we consume the code between braces as the second attribute
         for p.peek(0).tokenType != RIGHT_BRACE {
-            fmt.Println("Prop Code")
             propCode = append(propCode, p.ParseStmt())
         }
-        fmt.Println("Continuation")
         p.advance()
         propAttributes = append(propAttributes, propName, paramList, propCode)
         propList[propName] = propAttributes
@@ -451,22 +479,19 @@ func (p *Parser) varAssignment() NodeStmt {
         if p.peek(0).tokenType == LESS {
             propertyList = make(map[string][]any)
             propertyList = p.properties()
-            fmt.Println("1st Getters/Setters", propertyList)
             p.advance()
         }
-        fmt.Println("variable", p.peek(0))
         varType = p.parseType()
         if Type, ok := varType.(*NodeType); ok {
             registeredType = Type.Type
             if registeredType == "[" {registeredType = "array"}
+            if Type.Type[len(Type.Type)-1] == '*' {p.envi.Pointer[p.peek(0).Lexeme] = true}
+            fmt.Println("Type ->", Type.Type, " : ", p.peek(0).Lexeme, p.envi.Pointer[p.peek(0).Lexeme])
         }
         
-        if p.peek(0).tokenType == STAR {p.envi.Pointer[p.peek(1).Lexeme] = true; p.advance()}
         if p.peek(0).tokenType != IDENTIFIER { PrintError(3, "Expected an identifier for function name"); panic("") }
         varName := p.advance().Lexeme
-        //fmt.Println("Var name", varName)
         if p.envi.hasVar(varName) {PrintError(10, "Var declared twice"); panic("")}
-        //fmt.Println("Ur var in envi", p.envi.Variable[varName])
         
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -487,13 +512,11 @@ func (p *Parser) varAssignment() NodeStmt {
         } else {
             if propertyList == nil {PrintError(5, "No properties added to this variable")}
             propertyList = p.propertiesDesc()
-            fmt.Println("2nd Getters/Setters of", varName + ":", propertyList)
         }
         for key, val := range propertyList {
             propertyList[varName + "_" + key] = val
             delete(propertyList, key)
 		}
-        fmt.Println("3rd Getters/Setters of", varName + ":", propertyList)
         p.envi.Variable[varName] = registeredType
         return &NodeStmtVar{Name: varName, Properties: propertyList, Type: varType, Value: varVal, Global: global}
     }
@@ -503,7 +526,6 @@ func (p *Parser) varAssignment() NodeStmt {
 
 func (p *Parser) multiVars() NodeStmt {
     if !p.isAtEnd() {
-        fmt.Println("Multi vars here")
         var vars []NodeStmt
         p.advance()
         for !p.peek(0).tokenType.equals(RIGHT_BRACE) {
@@ -577,24 +599,21 @@ func (p *Parser) ccall() NodeStmt {
         switch actionName {
         case "include":
             for p.peek(0).tokenType != SEMICOLON {
-                called = append(called, p.expression())
+                if !p.peek(0).tokenType.equals(LESS) {
+                    called = append(called, p.expression())
+                } else {
+                    p.advance()
+                    included := &NodeLiteral{Value: "<" + p.advance().Lexeme + ".h>"}
+                    p.advance()
+                    called = append(called, included)
+                }
                 if p.peek(0).tokenType == COMMA {p.advance()}
             }
             break
-        case "function":
-            if p.peek(0).tokenType != IDENTIFIER {PrintError(3, "Expected Identifier"); panic("")}
-            callerName = p.advance().Lexeme
-            //fmt.Println("Caller", callerName)
-            if p.peek(0).tokenType != LEFT_PAREN {PrintError(3, "Expected left parenthesize for C function call"); panic("")}
-            p.advance()
-            for p.peek(0).tokenType != RIGHT_PAREN {
-                called = append(called, p.expression())
-                if p.peek(0).tokenType == COMMA {p.advance()}
-            }
-            p.advance()
-            break
-        }
-        //fmt.Println("Token actuel", p.peek(0))
+        case "write":
+            code := &NodeLiteral{Value: p.primary()}
+            called = append(called, code)
+        }    
         if p.peek(0).tokenType != SEMICOLON {fmt.Println(p.peek(0)); PrintError(3, "Expected semicolon"); panic("")}
         p.advance()
         return &NodeStmtC{Action: actionName, Called: called, CallerName: callerName}
@@ -910,7 +929,9 @@ func (p *Parser) importPkg() NodeStmt {
         if p.peek(0).tokenType == LEFT_BRACE {
             p.advance()
             for p.peek(0).tokenType != RIGHT_BRACE {
-                pathes = append(pathes, "\"" + p.peek(0).Lexeme[1:len(p.peek(0).Lexeme)-1] + ".h" + "\"")
+                path := "\"" + p.peek(0).Lexeme[1:len(p.peek(0).Lexeme)-1] + ".h" + "\""
+                if strings.Contains(path, "/") {path = "\"../" + path[1:]}
+                pathes = append(pathes, path)
                 p.advance()
                 if p.peek(0).tokenType == COMMA {p.advance()}
             }

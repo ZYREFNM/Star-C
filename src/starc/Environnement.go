@@ -142,6 +142,16 @@ func (e *Environnement) getStatic(Name string, ClassName string) bool {
     return false
 }
 
+func (e *Environnement) getPointer(Name string) bool {
+    if _, ok := e.Pointer[Name]; ok {
+        return true
+    }
+    if !e.isGlobal() {
+        return e.Parent.getPointer(Name)
+    }
+    return false
+}
+
 func (e *Environnement) SearchImport() []string {
     var packs []string
     if e.Import != nil {

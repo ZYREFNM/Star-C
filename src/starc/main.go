@@ -38,7 +38,7 @@ func main() {
             if e == "orbit" {continue}
             subFiles = append(subFiles, e)
         }
-        subFiles = append(subFiles, "std/Math.starc", "std/IO.starc")
+        subFiles = append(subFiles, "std/Math.starc", "std/IO.starc", "std/Vector.starc")
         runCommand(filePath, subFiles)
     }else if len(os.Args) == 2{
         fmt.Println("Updated")
@@ -48,7 +48,7 @@ func main() {
         if !strings.HasSuffix(filePath, ".starc") {
             PrintError(2, "Try to run a .starc file")
         }
-        subFiles = append(subFiles, "std/Math.starc", "std/IO.starc")
+        //subFiles = append(subFiles, "std/Math.starc", "std/IO.starc", "std/Vector.starc")
         runCommand(filePath, subFiles)
     }
     os.Exit(0);
@@ -118,12 +118,9 @@ func ignite(main string, extraSource []string) {
     }
     var parsedFiles [][]Node
     var filesNames []string
-    filesNames = append(filesNames, mainFile)
-    //fmt.Println("Os args", os.Args)
-    //fmt.Println("Sub files", subNames)
-    for _, name := range subNames {
-        filesNames = append(filesNames, name)
-        //fmt.Println("Sub: ", name)
+    filesNames = append(filesNames, filePath[:len(filePath)-6])
+    for _, name := range subFiles {
+        filesNames = append(filesNames, name[:len(name)-6])
     }
     var allSource []string
     var envis []*Environnement
@@ -157,7 +154,7 @@ func ignite(main string, extraSource []string) {
     for i, file := range linker.Files {
         name := filesNames[i]
         //fmt.Println("Name:: ", name)
-        var transpiler Transpiler = Transpiler{fileName: name}
+        var transpiler Transpiler = Transpiler{fileName: name, OtherModule: false}
         transpiler.GenerateCCode(file)
         //fmt.Println("Aide moi", transpiler.fileName, name)
     }

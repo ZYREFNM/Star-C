@@ -9,6 +9,7 @@ import (
 type Linker struct {
     Files [][]Node
     FilesEnvi map[string]*Environnement
+    Folder map[string][]Node
     KnownPackages map[string]bool
     Statics map[string]bool
 }

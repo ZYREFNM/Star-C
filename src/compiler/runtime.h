@@ -3,6 +3,4 @@
 
 char* star_concat(char* to, char* from);
 
-
-
 #endif

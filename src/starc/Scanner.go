@@ -83,6 +83,7 @@ var keywords = map[string]TokenType{
     "var":VAR,
     "while":WHILE,
     "whith":WITH,
+    "write":WRITE,
 }
 
 func (s *Scanner) ScanTokens() []Token {
@@ -120,8 +121,11 @@ func (s *Scanner) scanToken() {
     	case ',': s.addToken(COMMA); break;
     	case '.':
             tokenType := DOT
-            if s.match('.') && s.match('.') {
-                tokenType = VAR_ARGS
+            if s.match('.') {
+                tokenType = TYPE_CONV
+                if s.match('.') {
+                    tokenType = VAR_ARGS
+                }
             }
             s.addToken(tokenType)
     	case '-':

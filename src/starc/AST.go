@@ -253,6 +253,22 @@ func (n *NodeStmtC) Children() []Node {
 }
 
 
+type NodeExprC struct {
+    Action string
+    Called []NodeExpr
+    CallerName string
+}
+func (n *NodeExprC) isANode() {}
+func (n *NodeExprC) isExpr() {}
+func (n *NodeExprC) Children() []Node {
+    var child []Node
+    for _, call := range n.Called {
+        child = append(child, call)
+    }
+    return child
+}
+
+
 type NodeBlock struct {
 	Instructions []NodeStmt
 }

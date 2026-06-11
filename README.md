@@ -2,9 +2,16 @@
 Star-C is a transpiled language written in go that's transpile to C
 It uses a GCC implementation to run but that may changes to run with the Clang compiler
 
+- ## Philosophy
+    Star-C has been created to be a fast and powerful language that aim:
+    - ### Lightweight:
+        Star-C aims to be as light as possible while not decreasing performances.
+    - ### Flexibility:
+        Star-C's functionnalities have been made to be able to work for as much case possible in as much context possible.
+
 - ## Version
 	This project is actually instable and doesn't have realeses yet!
-	Currently is in Pre-Alpha version 1.2.0
+	Currently is in Pre-Alpha version 1.3.0
 
 - ## Exemples
 	Simple Hello, world!
