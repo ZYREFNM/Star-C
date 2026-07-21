@@ -1,0 +1,5 @@
+module std/strings;
+
+func bool contains(string chars, string has) {
+    return ccall function strstr(chars.lit, has.lit);
+}

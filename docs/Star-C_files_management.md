@@ -1,0 +1,1 @@
+Star-C uses a system of modules. Modules are not mandatory but required to import and interact with other files. Each module can have sub-modules (which are nested module) and {fill later}.

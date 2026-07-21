@@ -1,0 +1,34 @@
+module Vector;
+
+class vec2 {
+    var (get, set) float32 x;
+    var (get, set) float32 y;
+    static func vec2 new(float64 x, float64 y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class vec3 {
+    var (get, set) float32 x;
+    var (get, set) float32 y;
+    var (get, set) float32 z;
+    static func vec3 new(float64 x, float64 y, float64 z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }    
+}
+
+class vec4 {
+    var (get, set) float32 x;
+    var (get, set) float32 y;
+    var (get, set) float32 z;
+    var (get, set) float32 w;
+    static func vec4 new(float64 x, float64 y, float64 z, float64 w) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
+    }
+}

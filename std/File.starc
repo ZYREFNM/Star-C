@@ -1,0 +1,17 @@
+module Files;
+
+class path {
+    static func string getDir(string filepath) {
+        var string pathCopy;
+        C:function strcpy(pathCopy, filepath);
+        return C:function dirname(pathCopy);
+    }
+}
+
+class writer {
+
+}
+
+class reader {
+
+}

@@ -1,0 +1,7 @@
+module std/OS;
+
+class time {
+}
+
+class sys {
+}

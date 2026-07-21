@@ -1,0 +1,7 @@
+module builtin;
+
+typedef struct nova {
+    var {
+        int optimizer;
+    }
+}

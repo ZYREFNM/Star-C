@@ -1,0 +1,14 @@
+module Tables;
+
+class Arrays {
+    func int64 lenOf([StarPrimitive]() Arr) {
+        return Arr.length;
+    }
+    func int64 capOf([StarPrimitive]() Arr) {
+        return $alloc:size -> Arr / $alloc:size -> Arr[0];
+    }
+    
+    func void insert([StarPrimitive]() Arr, StarPrimitive element) {
+        Arr[lenOf(Arr)] = element;
+    }
+}

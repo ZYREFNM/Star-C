@@ -1,0 +1,9 @@
+module builtin;
+
+typedef struct map {
+    var {
+        void* key;
+        void* value;
+        int len;
+    }
+}
