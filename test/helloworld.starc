@@ -1,8 +1,36 @@
+precomp {
+
+    arena (
+        size: 1000,
+        local_name: "global_arena",
+        policy: "grow_only",
+        fallback: "system_heap",
+        state: "debug",
+    )
+
+}
+
 import {
     "std/IO",
     "std/strings",
 }
 
+typedef struct Lang {
+    var (set) {
+        string name;
+    }
+}
+
+func Lang.new(): l {
+}
+
+func void Lang.greet(): l {
+    IO::printfln("%s", "Hello, " << l.name);
+}
+
 func int main() {
-    IO::ouc.printfln("%s", "Hello, world!");
+    var Lang starc = Lang.new();
+    set { starc.name("Star-C") }
+    starc.greet();
+    IO::printfln("%s", get { starc.name() } << " is working!!!")
 }

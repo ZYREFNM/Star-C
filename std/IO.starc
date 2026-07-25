@@ -1,18 +1,17 @@
-module IO;
+module std/IO;
 
-class Input {
+import {
+    "std/strings"
 }
 
-class Output {
-    static func void print(string text) {
-        C:function printf(text);
+func void printf(string fmt, string text) {
+    var string to_string = "";
+    if (strings::contains(fmt, "%s")) {
+        to_string = to_string << text;
     }
-    
-    static func void printf(string fmt, string text) {
-        C:function printf(fmt, text);
-    }
-    
-    static func void printfln(string fmt, string text) {
-        C:function printf(fmt << "\n", text);
-    }
-}    
+    ccall function printf(fmt.lit, to_string.lit);
+}
+
+static func void printfln(string fmt, string text) {
+    IO::printf(fmt << "\n", text);
+}

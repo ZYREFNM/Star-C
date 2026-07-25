@@ -8,10 +8,11 @@ import (
     //"slices"
 )
 
-type Transpiler struct {
+type Compiler struct {
     fileName string
+    isMain bool
     currentClass string
-    Package string
+    Module string
     OtherModule bool
     importField string
     static bool
@@ -19,24 +20,35 @@ type Transpiler struct {
     CglobalFuncs string
     HglobalVars string
     HglobalFuncs string
+    Nova *SuperNova
+    Optimizer AOT_Optimizer
 }
 
-func (t *Transpiler) WriteInFile(code string, format string) {
+type ArenaDesc struct {
+    Size string
+    RefName string
+}
+
+type AOT_Optimizer struct {
+    
+}
+
+func (c *Compiler) WriteInFile(code string, format string) {
     codeBytes := []byte(code)
-    os.WriteFile(fmt.Sprintf("%s%s", t.fileName, format), codeBytes, 0644)
+    os.WriteFile(fmt.Sprintf("%s%s", c.fileName, format), codeBytes, 0644)
 }
 
-func (t *Transpiler) matchType(Type string, Size string, SubTypes []NodeExpr) string {
+func (c *Compiler) matchType(Type string, Size string, SubTypes []NodeExpr) string {
     var res string
     var FinalType string = Type
     if Type == "[" {
         if sub, ok := SubTypes[0].(*NodeType); ok {
-            FinalType = t.matchType(sub.Type, t.TranslateC(sub.Size), sub.SubType)
+            FinalType = c.matchType(sub.Type, c.TranslateC(sub.Size), sub.SubType)
             if FinalType == "string" || FinalType == "char*" {FinalType = "char"}
         }
     }
     switch FinalType {
-        case "string": res = "char*"
+        //case "string": res = "char*"
         case "int8": res = "int8_t"
         case "int16": res = "int16_t"
         case "int32": res = "int32_t"
@@ -48,25 +60,25 @@ func (t *Transpiler) matchType(Type string, Size string, SubTypes []NodeExpr) st
     return res
 }
 
-func (t *Transpiler) matchAction(Action string, Called []NodeExpr, CallerName string) string {
+func (c *Compiler) matchAction(Action string, Called []NodeExpr, CallerName string) string {
     switch Action {
         case "include":
             var code string
             for _, called := range Called {
-                code += "#include " + t.TranslateC(called) + "\n"
+                code += "#include " + c.TranslateC(called) + "\n"
             }
             return code
         case "function":
             var args []string
             for _, arg := range Called {
-                args = append(args, t.TranslateC(arg))
+                args = append(args, c.TranslateC(arg))
             }
             return fmt.Sprintf("%s(%s)", CallerName, strings.Join(args, ", "))
         default: return ""
     }
 }
 
-func (t *Transpiler) basicProperty(Prop string, varName string, varType string, value string, hasParent bool) string {
+func (c *Compiler) basicProperty(Prop string, varName string, varType string, value string, hasParent bool) string {
     var Name string = varName
     if hasParent {
         Name = "this->" + Name
@@ -78,8 +90,8 @@ func (t *Transpiler) basicProperty(Prop string, varName string, varType string, 
     }
 }
 
-func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string, varType string, Header bool) string {
-    var class string = t.currentClass
+func (c *Compiler) matchProperty(Name string, Attributes []any, varName string, varType string, Header bool) string {
+    var class string = c.currentClass
     var hasParent bool
     var pointer string
     var point string
@@ -87,10 +99,10 @@ func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string
     var Property string
     var defaultValue string
     var code string
-    if t.currentClass != "" {
+    if c.currentClass != "" {
         hasParent = true
         class += "_"
-        pointer = t.currentClass
+        pointer = c.currentClass
         point = "this"
     } else {
         hasParent = false
@@ -117,12 +129,12 @@ func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string
             if attributes, ok := Attributes[2].([]NodeStmt); ok {
                 code += "{\n"
                 for _, att := range attributes {
-                    code += "    " + t.TranslateC(att) + "\n"
+                    code += "    " + c.TranslateC(att) + "\n"
                 }
                 code += "}\n"
             }
         } else {
-            code = t.basicProperty(Property, varName, varType, defaultValue, hasParent)
+            code = c.basicProperty(Property, varName, varType, defaultValue, hasParent)
         }
     }
     if otherArgs == "" {
@@ -138,42 +150,45 @@ func (t *Transpiler) matchProperty(Name string, Attributes []any, varName string
     }
 }
 
-func (t *Transpiler) matchAllocate(alloc string) string {
+func (c *Compiler) matchAllocate(alloc string) string {
     switch alloc {
-        case "memory": return "malloc"
-        case "free": return "free"
-        case "clean": return "calloc"
+        case "mem": return "arena_malloc"
+        case "free": return "arena_free"
+        case "clean": return "arena_calloc"
         case "size": return "sizeof"
     	default: return alloc
     }
 }
 
-func (t *Transpiler) TranslateH(node Node) string {
+func (c *Compiler) TranslateH(node Node) string {
     switch n := node.(type) {
         
-        case *NodeLiteral: return fmt.Sprintf("%v", n.Value)
+        case *NodeLiteral:
+            val := n.Value
+            //if val == ""
+            return fmt.Sprintf("%v", val)
         
-        case *NodeType: return t.matchType(n.Type, t.TranslateH(n.Size), n.SubType)
+        case *NodeType: return c.matchType(n.Type, c.TranslateH(n.Size), n.SubType)
         
-        case *NodeBinary: return fmt.Sprintf("%s %s %s", t.TranslateH(n.Left), n.Operator, t.TranslateH(n.Right))
+        case *NodeBinary: return fmt.Sprintf("%s %s %s", c.TranslateH(n.Left), n.Operator, c.TranslateH(n.Right))
         
-        case *NodeUnary: return fmt.Sprintf("%s (%s)", n.Operator, t.TranslateH(n.Right))
+        case *NodeUnary: return fmt.Sprintf("%s (%s)", n.Operator, c.TranslateH(n.Right))
         
-        case *NodeGroup: return fmt.Sprintf("(%s)", t.TranslateH(n.Expression))
+        case *NodeGroup: return fmt.Sprintf("(%s)", c.TranslateH(n.Expression))
         
         case *NodeStmtVar:
-        	Type := t.TranslateH(n.Type)
+        	Type := c.TranslateH(n.Type)
             varEnd := ";"
-            if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.TranslateH(n.Value))}
+            if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", c.TranslateH(n.Value))}
             if n.Properties != nil {
-                t.HglobalFuncs += "\n"
+                c.HglobalFuncs += "\n"
                 for key, prop := range n.Properties {
-                	t.HglobalFuncs += t.matchProperty(key, prop, n.Name, Type, true) + "\n"
+                	c.HglobalFuncs += c.matchProperty(key, prop, n.Name, Type, true) + "\n"
                 }
             }
         	code := fmt.Sprintf("%s %s%s\n", Type, n.Name, varEnd)
             if n.Global {
-                t.HglobalVars += code
+                c.HglobalVars += code
                 return ""
             }
             return code
@@ -181,48 +196,57 @@ func (t *Transpiler) TranslateH(node Node) string {
         case *NodeStmtMultiVars:
             var vars string
             for _, Var := range n.Vars {
-                vars += t.TranslateH(Var)
+                vars += c.TranslateH(Var)
             }
             return vars
         
         case *NodeStmtConst:
-            var Type string = t.TranslateH(n.Type)
-            t.HglobalVars += fmt.Sprintf("extern const %s %s;\n", Type, n.Name)
+            var Type string = c.TranslateH(n.Type)
+            c.HglobalVars += fmt.Sprintf("extern const %s %s;\n", Type, n.Name)
             return ""
         
         case *NodeStaticStmt:
-            t.static = true
-            stmt := t.TranslateH(n.Stmt)
-            t.static = false
+            c.static = true
+            stmt := c.TranslateH(n.Stmt)
+            c.static = false
             return stmt
         
         case *NodeStmtFuncInit:
         	var funcName string = n.Name
             var paramList []string
-            if n.Name == "main" {return ""}
-            Type := t.TranslateH(n.Return)
+            if n.Name == "main" {
+                funcName = "star_main"
+            }
+            Type := c.TranslateH(n.Return)
             
-            if t.currentClass != "" {
-                funcName = t.currentClass + "_" + funcName
-                if !t.static {
-                    paramList = append(paramList, fmt.Sprintf("%s* this", t.currentClass))
+            mod := c.Module
+            if mod != "" {
+                mod += "__"
+            }
+            
+            receiverType, receiver := n.ReceiverType, n.ReceiverName
+            
+            if receiverType.Lexeme != "" {
+                funcName = receiverType.Lexeme + "_" + funcName
+                if !c.static {
+                    paramList = append(paramList, fmt.Sprintf("%s* %s", receiverType.Lexeme, receiver.Lexeme))
                 }
             }
             
             for _, p := range n.Param {
-                param := t.TranslateH(p)
+                param := c.TranslateH(p)
                 param = strings.TrimSuffix(param, "\n")
                 param = strings.TrimSuffix(param, ";")
                 paramList = append(paramList, param)
             }
-            t.HglobalFuncs += fmt.Sprintf("%s %s__%s(%s);\n\n", Type, t.Package, funcName, strings.Join(paramList, ", "))
+            c.HglobalFuncs += fmt.Sprintf("%s %s%s(%s);\n\n", Type, mod, funcName, strings.Join(paramList, ", "))
             return ""
             
         case *NodeStmtConstructor:
             var list []string
-            Type := t.TranslateC(n.Return)
+            Type := c.TranslateC(n.Return)
             for _, p := range n.Param {
-                param := t.TranslateH(p)
+                param := c.TranslateH(p)
                 param = strings.TrimSuffix(param, "\n")
                 param = strings.TrimSuffix(param, ";")
                 list = append(list, param)
@@ -232,69 +256,56 @@ func (t *Transpiler) TranslateH(node Node) string {
         case *NodeStmtTypeDef:
             typeName := n.Name
             code := ""
-            var Type string = t.TranslateH(n.Type)
+            var Type string = c.TranslateH(n.Type)
             if Type == "struct" || Type == "enum" {
                 code += " {\n"
                 for _, init := range n.Vars {
-                    lit := t.TranslateC(init)
+                    lit := c.TranslateC(init)
                     if Type == "enum" {lit = lit[:len(lit)-1] + ","}
                     code += "    " + lit + "\n"
                 }
                 code += "}"
             }
-        	t.HglobalVars += fmt.Sprintf("typedef %s%s %s;\n\n", Type, code, typeName)
+        	c.HglobalVars += fmt.Sprintf("typedef %s%s %s;\n\n", Type, code, typeName)
             return ""
-        
-        case *NodeStmtClass:
-        	className := n.Name
-            var classVars string
-            var classCode string
-            t.currentClass = className
-            for _, e := range n.Code {
-                if _, ok := e.(*NodeStmtVar); ok {
-                    classVars += "    " + t.TranslateH(e) + "\n"
-                } else if _, ok := e.(*NodeStmtMultiVars); ok {
-                    classVars += t.TranslateH(e)
-                } else {
-                    classCode += t.TranslateH(e) + "\n"
-                }
-            }
-            t.currentClass = ""
-            t.HglobalVars += fmt.Sprintf("typedef struct {\n%s} %s;\n%s", classVars, className, classCode)
-            return ""
-        
         case *NodeImport:
             var importCode string
             for _, pkg := range n.Names {
                 importCode += "#include " + pkg + "\n"
                 fmt.Println("Your pack", pkg)
             }
-            t.importField += importCode
+            c.importField += importCode
             return ""
-        
         default: return ""
     }
 }
 
-func (t *Transpiler) TranslateC(node Node) string {
+func (c *Compiler) TranslateC(node Node) string {
     switch n := node.(type) {
         
         case *NodeStmtExpr:
-        	return t.TranslateC(n.Expr) + ";"
+        	return c.TranslateC(n.Expr) + ";"
         
         case *NodeType:
-            return t.matchType(n.Type, t.TranslateC(n.Size), n.SubType)
+            return c.matchType(n.Type, c.TranslateC(n.Size), n.SubType)
         
         case *NodeBinary:
-        	return fmt.Sprintf("%s %s %s", t.TranslateC(n.Left), n.Operator, t.TranslateC(n.Right))
+        	return fmt.Sprintf("%s %s %s", c.TranslateC(n.Left), n.Operator, c.TranslateC(n.Right))
             
-        case *NodeLiteral: return fmt.Sprintf("%v", n.Value)
+        case *NodeLiteral:
+            var val any
+            switch n.Type.tokenType {
+                case STRING: val = fmt.Sprintf("string_new(%s).lit", n.Value); fmt.Println("DEBUG!!!")
+                case NULL: val = "NULL"
+                default: val = n.Value
+            }
+            return fmt.Sprintf("%v", val)
         
         case *NodeUnary:
             op := n.Operator
-            right := t.TranslateC(n.Right)
+            right := c.TranslateC(n.Right)
             if op != "-" && op != "!" {
-                op = t.matchType(op, "", nil)
+                op = c.matchType(op, "", nil)
                 op = "(" + op + ")"
             } else {
                 right = "(" + right + ")"
@@ -302,23 +313,26 @@ func (t *Transpiler) TranslateC(node Node) string {
             return fmt.Sprintf("%s%s", op, right)
         
         case *NodeExprConcat:
-        	return fmt.Sprintf("star_concat(%s, %s)", t.TranslateC(n.To), t.TranslateC(n.From))
+            left , right := c.TranslateC(n.To), c.TranslateC(n.From)
+            left = strings.TrimSuffix(left, ".lit")
+            right = strings.TrimSuffix(right, ".lit")
+        	return fmt.Sprintf("star_concat(%s, %s)", left, right)
             
-        case *NodeGroup: return fmt.Sprintf("(%s)", t.TranslateC(n.Expression))
+        case *NodeGroup: return fmt.Sprintf("(%s)", c.TranslateC(n.Expression))
         
         case *NodeGet:
-            target := t.TranslateC(n.Object)
+            target := c.TranslateC(n.Object)
             //fmt.Println(fmt.Sprintf("Getting -> %s %s %s", target, symbol, n.Field))
             return fmt.Sprintf("%s%s%s", target, n.Symbol, n.Field)
         
         case *NodePkgResolve:
-            t.OtherModule = true
+            c.OtherModule = true
             pkg := n.Pkg
             if pkg == "" {
-                pkg = t.Package
+                pkg = c.Module
             }
-            res := t.TranslateC(n.Resolution)
-            t.OtherModule = false
+            res := c.TranslateC(n.Resolution)
+            c.OtherModule = false
             return pkg + "__" + res
         
         case *NodeStmtVar:
@@ -326,23 +340,27 @@ func (t *Transpiler) TranslateC(node Node) string {
             var Type string
             var nodeSize string
             if node, ok := n.Type.(*NodeType); ok {
-                nodeSize = t.TranslateC(node.Size)
-                Type = t.matchType(node.Type, nodeSize, node.SubType)
+                nodeSize = c.TranslateC(node.Size)
+                Type = c.matchType(node.Type, nodeSize, node.SubType)
             }
             if nodeSize != "" {
                 varName += "[" + nodeSize + "]"
             }
             varEnd := ";"
-            if n.Value != nil {varEnd = fmt.Sprintf(" = %s;", t.TranslateC(n.Value))}
+            if n.Value != nil {
+                val := c.TranslateC(n.Value)
+                if strings.HasSuffix(val, ".lit") {val = strings.TrimSuffix(val, ".lit")}
+                varEnd = fmt.Sprintf(" = %s;", val)
+            }
             if n.Properties != nil {
-                t.CglobalFuncs += "\n"
+                c.CglobalFuncs += "\n"
                 for key, prop := range n.Properties {
-                	t.CglobalFuncs += t.matchProperty(key, prop, n.Name, Type, false) + "\n"
+                	c.CglobalFuncs += c.matchProperty(key, prop, n.Name, Type, false) + "\n"
                 }
             }
         	code := fmt.Sprintf("%s %s%s\n", Type, varName, varEnd)
             if n.Global {
-                t.CglobalVars += code
+                c.CglobalVars += code
                 return ""
             }
             return code
@@ -350,53 +368,66 @@ func (t *Transpiler) TranslateC(node Node) string {
         case *NodeStmtMultiVars:
             var vars string
             for _, Var := range n.Vars {
-                vars += t.TranslateC(Var)
+                vars += c.TranslateC(Var)
             }
             return vars
         
         case *NodeStmtConst:
             var code string
-        	var Type string = t.TranslateC(n.Type)
-            code = fmt.Sprintf("const %s %s = %s;", Type, n.Name, t.TranslateC(n.Value))
+        	var Type string = c.TranslateC(n.Type)
+            val := c.TranslateC(n.Value)
+            if !MatchStr(Type, "enum", "struct") {
+                val += ";"
+            }
+            if MatchStr(val, "") {
+                val = ";"
+            } else {val = "= " + val}
+            code = fmt.Sprintf("const %s %s %s", Type, n.Name, val)
             if n.Global {
-                t.CglobalVars += code
+                c.CglobalVars += code
                 return ""
             }
             return code
             
-        case *NodeAssignment: return fmt.Sprintf("%s = %s;", t.TranslateC(n.Target), t.TranslateC(n.Value))
+        case *NodeAssignment:
+            val := c.TranslateC(n.Value)
+            if strings.HasSuffix(val, ".lit") {val = strings.TrimSuffix(val, ".lit")}
+            return fmt.Sprintf("%s %s %s;", c.TranslateC(n.Target), n.Symbol.Lexeme, val)
         
         case *NodeVariable: return n.Name
         
         case *NodeExprAlloc:
-            return fmt.Sprintf("%s(%s)", t.matchAllocate(n.Allocation), t.TranslateC(n.Size))
+            alloc := c.matchAllocate(n.Allocation)
+            args := c.TranslateC(n.Size)
+            if n.Allocation != "size" {args = "global_arena, " + args}
+            return fmt.Sprintf("%s(%s)", alloc, args)
         
         case *NodeBlock:
         	var code string = "{\n"
             for _, stmt := range n.Instructions {
-                code += "	" + t.TranslateC(stmt) + "\n"
+                code += "	" + c.TranslateC(stmt) + "\n"
             }
             code += "}\n"
         	return code
             
         case *NodeStmtReturn:
         	if n.Value == nil {return "return;"}
-            return fmt.Sprintf("return %s;", t.TranslateC(n.Value))
+            return fmt.Sprintf("return %s;", c.TranslateC(n.Value))
         
         case *NodeStmtC:
-            return t.matchAction(n.Action, n.Called, n.CallerName) + ";"
+            return c.matchAction(n.Action, n.Called, n.CallerName) + ";"
         
         case *NodeExprC:
-            return t.matchAction(n.Action, n.Called, n.CallerName)
+            return c.matchAction(n.Action, n.Called, n.CallerName)
         
         case *NodeStmtIf:
-        	condition := t.TranslateC(n.Condition)
-            result := t.TranslateC(n.Result)
+        	condition := c.TranslateC(n.Condition)
+            result := c.TranslateC(n.Result)
             return fmt.Sprintf("if (%s) %s", condition, result)
         
         case *NodeStmtLoop:
-            loops := t.TranslateC(n.Looping)
-            result := t.TranslateC(n.Result)
+            loops := c.TranslateC(n.Looping)
+            result := c.TranslateC(n.Result)
             return  fmt.Sprintf("for %s %s", loops, result)
         
         case *NodeExprIter:
@@ -404,78 +435,92 @@ func (t *Transpiler) TranslateC(node Node) string {
             var Type string
             if node_var, ok := n.Iter.(*NodeStmtVar); ok {
                 Var = node_var.Name
-                Type = t.TranslateC(node_var.Type) + " "
-            } else {Var = t.TranslateC(n.Iter)}
+                Type = c.TranslateC(node_var.Type) + " "
+            } else {Var = c.TranslateC(n.Iter)}
             if Var == "" {Var = "i"; Type = "int "}
-            Min := t.TranslateC(n.Min)
+            Min := c.TranslateC(n.Min)
             if Min == "" {Min = "0"}
-            Max := t.TranslateC(n.Max)
-            Increm := t.TranslateC(n.Increm)
+            Max := c.TranslateC(n.Max)
+            Increm := c.TranslateC(n.Increm)
             if Increm == "" {Increm = "1"}
             Operator := n.Operator
             if Operator == "" {Operator = "<"}
             return fmt.Sprintf("(%s%s = %s; %s %s %s; %s = %s + %s)", Type, Var, Min, Var, Operator, Max, Var, Var, Increm)
         
         case *NodeStmtWhile:
-        	condition := t.TranslateC(n.Condition)
-            result := t.TranslateC(n.Result)
+        	condition := c.TranslateC(n.Condition)
+            result := c.TranslateC(n.Result)
             return fmt.Sprintf("while (%s) %s", condition, result)
             
         case *NodeStmtFuncInit:
         	var funcName string = n.Name
             var pack string
         	var list []string
-            if t.currentClass != "" {
-                funcName = t.currentClass + "_" + funcName
-                if !t.static {
-                    list = append(list, fmt.Sprintf("%s* this", t.currentClass))
+            receiverType, receiver := n.ReceiverType, n.ReceiverName
+            if receiverType.Lexeme != "" {
+                funcName = receiverType.Lexeme + "_" + funcName
+                if !c.static {
+                    list = append(list, fmt.Sprintf("%s* %s", receiverType.Lexeme, receiver.Lexeme))
                 }
             }
-            if t.Package != "" {
+            if c.Module != "" {
                 if funcName != "main" {
-                    pack = t.Package + "__"
+                    pack = c.Module + "__"
                 }
             }
         	for _, p := range n.Param {
-                param := t.TranslateC(p)
+                param := c.TranslateC(p)
                 param = strings.TrimSuffix(param, "\n")
                 param = strings.TrimSuffix(param, ";")
                 list = append(list, param)
             }
             fmt.Println("Your param", strings.Join(list, ", "))
-            code := t.TranslateC(n.Code)
-        	return fmt.Sprintf("%s %s%s(%s) %s", t.TranslateC(n.Return), pack, funcName, strings.Join(list, ", "), code)
+            code := c.TranslateC(n.Code)
+            if n.Name == "main" {
+                funcName = "star_main"
+                code = code[:len(code)-2] + "return 0;\n}\n"
+            }
+        	return fmt.Sprintf("%s %s%s(%s) %s", c.TranslateC(n.Return), pack, funcName, strings.Join(list, ", "), code)
         
         case *NodeStmtConstructor:
             var list []string
             var code string
-            Type := t.TranslateC(n.Return)
+            receiverType, receiver := n.ReceiverType.Lexeme, n.ReceiverName.Lexeme
+            Type := c.TranslateC(n.Return)
             for _, p := range n.Param {
-                param := t.TranslateC(p)
+                param := c.TranslateC(p)
                 param = strings.TrimSuffix(param, "\n")
                 param = strings.TrimSuffix(param, ";")
                 list = append(list, param)
             }
-            code = t.TranslateC(n.Code)
-            code = code[:2] + fmt.Sprintf("	%s* this = malloc(sizeof(%s));\n", Type, Type) + code[2:len(code)-2] + "\n	return this; \n}"
+            code = c.TranslateC(n.Code)
+            code = code[:2] + fmt.Sprintf("	%s* %s = malloc(sizeof(%s));\n", receiverType, receiver, Type) + code[2:len(code)-2] + fmt.Sprintf("\n	return %s; \n}", receiver)
             return fmt.Sprintf("%s* %s_new(%s) %s", Type, Type, strings.Join(list, ", "), code)
         case *NodeExprFuncCall:
         	var argsList []string
             var module string
-            if t.OtherModule == false {module = t.Package + "__"}
+            if c.OtherModule == false {module = c.Module + "__"}
             for _, arg := range n.Args {
-                argsList = append(argsList, t.TranslateC(arg))
+                trans_arg := c.TranslateC(arg)
+                if strings.HasSuffix(trans_arg, ".lit") {
+                    trans_arg = strings.TrimSuffix(trans_arg, ".lit")
+                }
+                argsList = append(argsList, trans_arg)
             }
         	return fmt.Sprintf("%s%s(%s)", module, n.Name, strings.Join(argsList, ", "))
         
         case *NodeExprMethodCall:
             var class string = n.Class
         	var argsList []string
-            var parPointer string = "&" + t.TranslateC(n.Parent)
+            var parPointer string = "&" + c.TranslateC(n.Parent)
             var multiargs string
             for _, arg := range n.Args {
                 multiargs = ", "
-                argsList = append(argsList, t.TranslateC(arg))
+                trans_arg := c.TranslateC(arg)
+                if strings.HasSuffix(trans_arg, ".lit") {
+                    trans_arg = strings.TrimSuffix(trans_arg, ".lit")
+                }
+                argsList = append(argsList, trans_arg)
             }
             
             fmt.Println("NAME", n.Name)
@@ -497,7 +542,7 @@ func (t *Transpiler) TranslateC(node Node) string {
             var varName string
             var varParam []string
             
-            parPointer := t.TranslateC(n.Expr)
+            parPointer := c.TranslateC(n.Expr)
             
         	for k, v := range n.Vars {
                 varName = k
@@ -505,7 +550,7 @@ func (t *Transpiler) TranslateC(node Node) string {
                     parPointer = varName
                 }
                 for _, e := range v {
-                    varParam = append(varParam, t.TranslateC(e))
+                    varParam = append(varParam, c.TranslateC(e))
                 }
             }
             if len(varParam) != 0 {parPointer += ", "}
@@ -517,7 +562,7 @@ func (t *Transpiler) TranslateC(node Node) string {
             var varName string
             var varParam []string
             
-            parPointer := t.TranslateC(n.Expr)
+            parPointer := c.TranslateC(n.Expr)
             
         	for k, v := range n.Vars {
                 varName = k
@@ -525,7 +570,7 @@ func (t *Transpiler) TranslateC(node Node) string {
                     parPointer = varName
                 }
                 for _, e := range v {
-                    varParam = append(varParam, t.TranslateC(e))
+                    varParam = append(varParam, c.TranslateC(e))
                 }
             }
             if len(varParam) != 0 {
@@ -535,61 +580,42 @@ func (t *Transpiler) TranslateC(node Node) string {
             return ""    
         
         case *NodeExprListIndex:
-            return fmt.Sprintf("%s[%s]", t.TranslateC(n.Expr), t.TranslateC(n.Index))
+            return fmt.Sprintf("%s[%s]", c.TranslateC(n.Expr), c.TranslateC(n.Index))
         
         case *NodeStaticStmt:
-            t.static = true
-            stmt := t.TranslateC(n.Stmt)
-            t.static = false
+            c.static = true
+            stmt := c.TranslateC(n.Stmt)
+            c.static = false
             return stmt
         case *NodeScopeAcces:
-            return t.TranslateC(n.Stmt)
+            var code string
+            for _, stmt := range n.Stmt {
+                code += c.TranslateC(stmt) + "\n"
+            }
+            return code
         case *NodeStmtTypeDef:
-            t.currentClass = n.Name
+            c.currentClass = n.Name
             typeName := n.Name
             code := ""
-            var Type string = t.TranslateC(n.Type)
+            var Type string = c.TranslateC(n.Type)
             if Type == "struct" || Type == "enum" {
                 code += " {\n"
                 for _, init := range n.Vars {
-                    lit := t.TranslateC(init)
+                    lit := c.TranslateC(init)
                     if Type == "enum" {lit = lit[:len(lit)-1] + ","}
                     code += "    " + lit + "\n"
                 }
                 code += "}"
             }
-        	t.CglobalVars += fmt.Sprintf("typedef %s%s %s;\n\n", Type, code, typeName)
-            t.currentClass = ""
+        	c.CglobalVars += fmt.Sprintf("typedef %s%s %s;\n\n", Type, code, typeName)
+            c.currentClass = ""
             return ""
-        case *NodeStmtClass:
-        	className := n.Name
-            var classVars string
-            var classCode string
-            t.currentClass = className
-            if v, ok := n.Extends.(*NodeType); ok {
-                if v != nil {
-                    classVars = "    " + t.TranslateC(n.Extends) + " parent;\n"
-                }
-            }
-            for _, e := range n.Code {
-                if _, ok := e.(*NodeStmtVar); ok {
-                    classVars += "    " + t.TranslateC(e)
-                } else if _, ok := e.(*NodeStmtMultiVars); ok {
-                    classVars += t.TranslateC(e)
-                } else {
-                    classCode += t.TranslateC(e) + "\n"
-                }
-            }
-            t.currentClass = ""
-            t.CglobalVars += fmt.Sprintf("typedef struct {\n%s} %s;\n%s", classVars, className, classCode)
-            return ""
-        
         case *NodeStmtModule:
-            t.Package = n.Name
+            c.Module = filepath.Base(n.Name)
+            fmt.Println(Red, "Module de salope", Reset, filepath.Base(n.Name), c.Module)
             return ""
         
         case *NodeImport:
-            var importCode string
             var Modules []string
             for _, module := range n.Names {
                 fmt.Println(module, module[len(module)-5:len(module)], "MODULE", module[len(module)-5:len(module)] == "/*.h\"")
@@ -607,32 +633,49 @@ func (t *Transpiler) TranslateC(node Node) string {
                     }
                 } else {fmt.Println("Non"); Modules = append(Modules, module)}
             }
+            var importCode string
             for _, module := range Modules {
-                importCode += "#include " + module + "\n"
+                importCode = "#include " + module + "\n"
                 fmt.Println("Your pack", module)
             }
-            t.importField += importCode
+            c.importField += importCode
             return ""
         
         default: return ""
     }
 }
 
-func (t *Transpiler) GenerateCCode(nodes []Node) {
-    var CBuilder strings.Builder
-    var HBuilder strings.Builder
-    CBuilder.WriteString("#include <stdlib.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"../src/compiler/runtime.h\"\n")
-    var mainContents string
-    var headerContents string
+func (c *Compiler) GenerateCCode(nodes []Node) {
+    var (
+        CBuilder strings.Builder
+        HBuilder strings.Builder
+        mainContents string
+        headerContents string
+        NovaArena *ModuleArena = c.Nova.ModulesPreCompiler[c.Module].Arena
+    )
     for _, node := range nodes {
-        line := t.TranslateC(node)
-        head := t.TranslateH(node)
+        line := c.TranslateC(node)
+        head := c.TranslateH(node)
         mainContents += fmt.Sprintf("%s\n", line)
         headerContents += fmt.Sprintf("%s\n", head)
     }
-    CBuilder.WriteString(fmt.Sprintf("%s\n\n%s%s%s", t.importField, t.CglobalVars, t.CglobalFuncs, mainContents))
-    HBuilder.WriteString(fmt.Sprintf("#ifndef %s_H\n#define %s_H\n", strings.ToUpper(filepath.Base(t.fileName)), strings.ToUpper(filepath.Base(t.fileName))))
-    HBuilder.WriteString(fmt.Sprintf("%s\n%s\n%s\n%s\n#endif", t.importField, t.HglobalVars, t.HglobalFuncs, headerContents))
-    t.WriteInFile(HBuilder.String(), ".h")
-	t.WriteInFile(CBuilder.String(), ".c")
+    var BasicMacros string
+    if c.isMain {
+        BasicMacros = fmt.Sprintf("#define __ARENA_ALLOCATOR_SIZE__ %s\n", NovaArena.Size)
+    }
+    CBasicImport := "#include <stdlib.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include \"../src/compiler/runtime.h\"\n" + BasicMacros
+    CBuilder.WriteString(CBasicImport)
+    HBuilder.WriteString(CBasicImport)
+    var new_global_arena string
+    var mainFunc string
+    if c.isMain {
+        new_global_arena = fmt.Sprintf("t_Arena* %s;\n", NovaArena.LocalName)
+        mainFunc = fmt.Sprintf("int main() {\n%s = new_arena(__ARENA_ALLOCATOR_SIZE__ * 1024);\nint exit = star_main();\nkill_arena(%s);\nreturn exit;\n}\n", NovaArena.LocalName, NovaArena.LocalName)
+    }
+    CBuilder.WriteString(new_global_arena)
+    CBuilder.WriteString(fmt.Sprintf("%s\n\n%s%s%s%s", c.importField, c.CglobalVars, c.CglobalFuncs, mainContents, mainFunc))
+    HBuilder.WriteString(fmt.Sprintf("\n#ifndef %s_H\n#define %s_H\n", strings.ToUpper(filepath.Base(c.fileName)), strings.ToUpper(filepath.Base(c.fileName))))
+    HBuilder.WriteString(fmt.Sprintf("%s\n%s\n%s\n%s\n#endif", c.importField, c.HglobalVars, c.HglobalFuncs, headerContents))
+    c.WriteInFile(HBuilder.String(), ".h")
+	c.WriteInFile(CBuilder.String(), ".c")
 }

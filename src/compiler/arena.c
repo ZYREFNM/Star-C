@@ -1,8 +1,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-typedef enum {} arena_state;
-
 typedef struct {
     char* m_top;
     char* m_curr;

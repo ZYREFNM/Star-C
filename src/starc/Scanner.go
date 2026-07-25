@@ -16,6 +16,8 @@ type Scanner struct {
 var dataType = map[string]TokenType{
 	"array":ARRAY_TYPE,
     "bool":BOOL_TYPE,
+    "byte":BYTE_TYPE,
+    "enum":ENUM_TYPE,
 	"map":MAP_TYPE,
 	"int":INT_TYPE,
 	"int8":INT8_TYPE,
@@ -38,17 +40,21 @@ var dataType = map[string]TokenType{
 	"ufloat32":UFLOAT32_TYPE,
 	"ufloat64":UFLOAT64_TYPE,
 	"string":STRING_TYPE,
+    "struct":STRUCT_TYPE,
 }
 
 var keywords = map[string]TokenType{
     "alloc":ALLOCATE,
     "and":AND,
+    "arena":ARENA,
     "break":BREAK,
     "call":CALL,
     "class":CLASS,
     "clean":CLEAN,
     "const":CONST,
+    "ccall":CCALL,
     "default":DEFAULT,
+    "define":DEFINE,
     "else":ELSE,
     "false":FALSE,
     "func":FUNC,
@@ -61,20 +67,19 @@ var keywords = map[string]TokenType{
     "import":IMPORT,
     "include":INCLUDE,
     "loop":LOOP,
-    "memory":MEMORY,
+    "mem":MEMORY,
     "not":NOT,
     "null":NULL,
     "or":OR,
     "optional":OPTIONAL,
     "module":MODULE,
     "pub":PUBLIC,
+    "precomp":PRECOMP,
     "prv":PRIVATE,
     "return":RETURN,
     "set":SET,
-    "size":SIZE,
     "super":SUPER,
     "static":STATIC,
-	"struct":STRUCT,
     "switch":SWITCH,
     "this":THIS,
     "true":TRUE,
@@ -108,10 +113,6 @@ func (s *Scanner) scanToken() {
     var c byte = s.advance();
     
     switch c {
-        case 'C':
-        	tokenType := IDENTIFIER
-        	if s.match(':') {tokenType = CCALL}
-            s.addToken(tokenType); break
     	case '(': s.addToken(LEFT_PAREN); break;
     	case ')': s.addToken(RIGHT_PAREN); break;
         case '[': s.addToken(LEFT_BRACKET); break;
@@ -143,6 +144,7 @@ func (s *Scanner) scanToken() {
             }
         	s.addToken(tokenType); break;
     	case ';': s.addToken(SEMICOLON); break;
+        case '#': s.addToken(HASHTAG)
     	case ':':
             tokenType := COLON
             if s.match(':') {
@@ -195,7 +197,9 @@ func (s *Scanner) scanToken() {
                         break
                     }
                     s.advance()
-                }    
+                }
+                CatchError("Comment reached EOF")
+                break
             } else {
                 tokenType := SLASH
                 if s.match('=') {tokenType = SLASH_EQUAL}
@@ -220,7 +224,7 @@ func (s *Scanner) scanToken() {
             for {
             	s.advance()
         		if s.isAtEnd() {
-                	PrintError(3, "May be due to a symbol that got in a context where it shouldn't be")
+                	CatchError("May be due to a symbol that got in a context where it shouldn't be")
                 	return
                 }
             }
@@ -337,7 +341,7 @@ func (s *Scanner) stringify() {
         s.advance();
     }
     if s.isAtEnd() {
-        PrintError(8, "Missing \" on a string and reached EOF");
+        CatchError("Missing \" on a string and reached EOF");
     }
     s.advance();
     

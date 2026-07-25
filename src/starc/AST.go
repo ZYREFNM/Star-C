@@ -120,6 +120,7 @@ func (n *NodeGroup) Children() []Node {
 
 type NodeLiteral struct {
     Value any
+    Type Token
 }
 func (n *NodeLiteral) isANode() {}
 func (n *NodeLiteral) isExpr() {}
@@ -171,12 +172,16 @@ type NodeStmtVar struct {
     Value Node
     Global bool
     Protected bool
+    Vars []NodeStmt
 }
 func (n *NodeStmtVar) isANode() {}
 func (n *NodeStmtVar) isStmt() {}
 func (n *NodeStmtVar) Children() []Node {
     var child []Node
     child = append(child, n.Value)
+    for _, c := range n.Vars {
+        child = append(child, c)
+    }
     return child
 }
 
@@ -214,6 +219,7 @@ func (n *NodeStmtConst) Children() []Node {
 type NodeAssignment struct {
     Target NodeExpr
     Value NodeExpr
+    Symbol Token
 }
 func (n *NodeAssignment) isANode() {}
 func (n *NodeAssignment) isStmt() {}
@@ -356,6 +362,8 @@ type NodeStmtFuncInit struct {
     Param []NodeStmt
     Code NodeStmt
     Protected bool
+    ReceiverType Token
+    ReceiverName Token
 }
 func (n *NodeStmtFuncInit) isANode() {}
 func (n *NodeStmtFuncInit) isStmt() {}
@@ -408,6 +416,7 @@ type NodeExprGetter struct {
     Class string
     Expr NodeExpr
     Vars map[string][]NodeExpr
+    Indices []NodeExpr
 }
 func (n *NodeExprGetter) isANode() {}
 func (n *NodeExprGetter) isExpr() {}
@@ -419,6 +428,9 @@ func (n *NodeExprGetter) Children() []Node {
             child = append(child, node)
         }
     }
+    for _, index := range n.Indices {
+        child = append(child, index)
+    }
     return child
 }
 
@@ -427,6 +439,7 @@ type NodeExprSetter struct {
     Class string
     Expr NodeExpr
     Vars map[string][]NodeExpr
+    Indices []NodeExpr
 }
 func (n *NodeExprSetter) isANode() {}
 func (n *NodeExprSetter) isExpr() {}
@@ -437,6 +450,9 @@ func (n *NodeExprSetter) Children() []Node {
         for _, node := range paramList {
             child = append(child, node)
         }
+    }
+    for _, index := range n.Indices {
+        child = append(child, index)
     }
     return child
 }
@@ -459,6 +475,8 @@ type NodeStmtConstructor struct {
     Return NodeExpr
     Param []NodeStmt
     Code NodeStmt
+    ReceiverType Token
+    ReceiverName Token
 }
 func (n *NodeStmtConstructor) isANode() {}
 func (n *NodeStmtConstructor) isStmt() {}
@@ -472,6 +490,7 @@ func (n *NodeStmtConstructor) Children() []Node {
     return child
 }
 
+//Modifiers nodes
 
 type NodeStaticStmt struct {
     Stmt NodeStmt
@@ -488,15 +507,19 @@ func (n *NodeStaticStmt) Children() []Node {
 
 type NodeScopeAcces struct {
     Modifier Token
-    Stmt NodeStmt
+    Stmt []NodeStmt
 }
 func (n *NodeScopeAcces) isANode() {}
 func (n *NodeScopeAcces) isStmt() {}
 func (n *NodeScopeAcces) Children() []Node {
     var child []Node
-    child = append(child, n.Stmt)
+    for _, c := range n.Stmt {
+        child = append(child, c)
+    }
     return child
 }
+
+// New type declaration nodes
 
 type NodeStmtTypeDef struct {
     Type NodeExpr
@@ -513,22 +536,7 @@ func (n *NodeStmtTypeDef) Children() []Node {
     return child
 }
 
-
-type NodeStmtClass struct {
-    Name string
-    Code []NodeStmt
-    Extends NodeExpr
-}
-func (n *NodeStmtClass) isANode() {}
-func (n *NodeStmtClass) isStmt() {}
-func (n *NodeStmtClass) Children() []Node {
-    var child []Node
-    for _, code := range n.Code {
-        child = append(child, code)
-    }
-    return child
-}
-
+// File's linking nodes
 
 type NodeStmtModule struct {
     Name string

@@ -10,19 +10,19 @@ type Token struct {
 }
 
 func (t TokenType) isDigit() bool {
-    return t >= INT && t <= UFLOAT64
+    return t == INT
 }
 
 func (t TokenType) isInteger() bool {
-    return t >= INT && t <= INT64 || t >= UINT && t <= UINT64
+    return t == INT || t == UINT
 }
 
 func (t TokenType) isType() bool {
-    return t >= ARRAY_TYPE && t <= STRING_TYPE
+    return t >= ARRAY_TYPE && t <= STRUCT_TYPE
 }
 
 func (t TokenType) isDigitType() bool {
-    return t >= INT_TYPE && t <= INT64_TYPE || t >= UINT_TYPE && t <= UINT64_TYPE || t >= FLOAT_TYPE && t <= FLOAT64_TYPE || t >= UFLOAT_TYPE && t <= UFLOAT64
+    return t >= INT_TYPE && t <= INT64_TYPE || t >= UINT_TYPE && t <= UINT64_TYPE || t >= FLOAT_TYPE && t <= FLOAT64_TYPE || t >= UFLOAT_TYPE && t <= UFLOAT64_TYPE
 }
 
 func (t TokenType) isBoolOperator() bool {
@@ -81,6 +81,7 @@ const (
     SEMICOLON
     SLASH
     STAR
+    HASHTAG
     
     //One or more char tokens
     BANG
@@ -105,33 +106,21 @@ const (
     ARRAY
     BOOL
     BYTE
-    MAP
+    ENUM
     IDENTIFIER
     INT
-    INT8
-    INT16
-    INT32
-    INT64
     FLOAT
-    FLOAT8
-    FLOAT16
-    FLOAT32
-    FLOAT64
+    MAP
     UINT
-    UINT8
-    UINT16
-    UINT32
-    UINT64
     UFLOAT
-    UFLOAT8
-    UFLOAT16
-    UFLOAT32
-    UFLOAT64
     STRING
+    STRUCT
     
     //Data-Type
     ARRAY_TYPE
+    BYTE_TYPE
     BOOL_TYPE
+    ENUM_TYPE
     MAP_TYPE
     IDENTIFIER_TYPE
     INT_TYPE
@@ -155,17 +144,19 @@ const (
     UFLOAT32_TYPE
     UFLOAT64_TYPE
     STRING_TYPE
+    STRUCT_TYPE
     
     //Keywords
     ALLOCATE
     AND
+    ARENA
     BREAK
     CCALL
     CONST
     CLASS
     DEFAULT
+    DEFINE
     ELSE
-    ENUM
     EXTENDS
     FALSE
     FUNC
@@ -175,15 +166,15 @@ const (
     IMPORT
     IOTA
     LOOP
+    MODULE
     NOT
     NULL
     OR
     OPTIONAL
-    MODULE
+    PRECOMP
     RETURN
     SUPER
     STATIC
-    STRUCT
     SWITCH
     THIS
     TRUE
@@ -211,6 +202,8 @@ const (
     CLEAN
     FREE
     SIZE
+    
+    //Precomp reserved words
     
     EOF
 )

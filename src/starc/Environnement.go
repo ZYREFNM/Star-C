@@ -5,7 +5,9 @@ import (
 )
 
 type Environnement struct {
-    Package string
+    Module string
+    ModulePath string
+    Name string
     Import map[string]bool
     Type map[string]string
     Variable map[string]string
@@ -15,7 +17,7 @@ type Environnement struct {
     Static map[string]bool
     Public map[string]string
     Protected map[string]string
-    Private map[string]string
+    Private map[string]*Environnement
     Classes map[string]*Environnement
     Parent *Environnement
     Unknown *UnknownLocker
@@ -32,7 +34,9 @@ type UnknownLocker struct {
 
 func InitEnvi() *Environnement {
     return &Environnement{
-        Package: "main",
+        Module: "main",
+        ModulePath: ".",
+        Name: "global",
         Import: make(map[string]bool),
         Type: make(map[string]string),
         Variable: make(map[string]string),
@@ -42,7 +46,7 @@ func InitEnvi() *Environnement {
         Static: make(map[string]bool),
         Public: make(map[string]string),
         Protected: make(map[string]string),
-        Private: make(map[string]string),
+        Private: make(map[string]*Environnement),
         Classes: make(map[string]*Environnement),
         Unknown: InitUnknownLocker(),
     }
@@ -65,7 +69,7 @@ func (e *Environnement) NewUnknownLocker() *UnknownLocker {
 
 func (e *Environnement) NewScope() *Environnement {
     return &Environnement{
-        Package: e.Package,
+        Module: e.Module,
         Import: make(map[string]bool),
         Type: make(map[string]string),
         Variable: make(map[string]string),
@@ -75,7 +79,19 @@ func (e *Environnement) NewScope() *Environnement {
         Static: make(map[string]bool),
         Classes: make(map[string]*Environnement),
         Unknown: e.NewUnknownLocker(),
+        Public: make(map[string]string),
+        Protected: make(map[string]string),
+        Private: make(map[string]*Environnement),
         Parent: e,
+    }
+}
+
+func (e *Environnement) Assimilate(envi *Environnement) {
+    for p, _ := range envi.Pointer {
+        e.Pointer[p] = true
+    }
+    for v, t := range envi.Variable {
+        e.Variable[v] = t
     }
 }
 
@@ -108,11 +124,23 @@ func (e *Environnement) hasConst(Const string) bool {
 }
 
 func (e *Environnement) hasFunc(Func string) bool {
-    _, exist := e.Func[Func]
-    if !exist && e.Parent != nil {
+    if _, exist := e.Func[Func]; exist {
+        return true
+    }
+    if e.Parent != nil {
         return e.Parent.hasFunc(Func)
     }
-    return exist
+    return false
+}
+
+func (e *Environnement) getInstanceType(instance string) string {
+    if e.Variable[instance] != "" {
+        return e.Variable[instance]
+    }
+    if e.Parent != nil {
+        return e.Parent.getInstanceType(instance)
+    }
+    return ""
 }
 
 func (e *Environnement) addStatic(Name string) {
@@ -125,18 +153,17 @@ func (e *Environnement) addStatic(Name string) {
 }
 
 func (e *Environnement) getStatic(Name string, ClassName string) bool {
-    //fmt.Println("Searchin for static", Name, "in class", ClassName)
+    fmt.Println("Searchin for static", Name, "in class", ClassName)
     _, exist := e.Static[Name]
     if exist {
-        //fmt.Println("Found")
+        fmt.Println("Found")
         return true
     }
     if envi, ok := e.Classes[ClassName]; ok {
-        //fmt.Println(fmt.Sprintf("Class %s found", ClassName))
+        fmt.Println(fmt.Sprintf("Class %s found", ClassName))
         return envi.getStatic(Name, ClassName)
     }
-    if e.Parent != nil {
-        //fmt.Println("Searching in Parent")
+    if !e.Parent.isGlobal() {
         return e.Parent.getStatic(Name, ClassName)
     }
     return false
@@ -156,7 +183,7 @@ func (e *Environnement) SearchImport() []string {
     var packs []string
     if e.Import != nil {
         for pack := range e.Import {
-            packs = append(packs, pack)
+            packs = append(packs, pack[1:len(pack)-1])
         }
     }
     return packs
@@ -200,4 +227,25 @@ func (e *Environnement) getUnsureFuncs() []string {
         }
     }
     return unsure
+}
+
+func (e *Environnement) getProtected() []string {
+    var protectNames []string
+    if e.Protected != nil {
+        for protected := range e.Protected {
+            protectNames = append(protectNames, protected)
+        }
+        
+        if e.Classes != nil {
+            var classesProtected []string
+            for _, class := range e.Classes {
+                classesProtected = class.getProtected()
+            }
+            for _, protect := range classesProtected {
+                protectNames = append(protectNames, protect)
+            }
+        }
+        
+    }
+    return protectNames
 }

@@ -1,6 +1,13 @@
-package Main;
-import {"std/IO"}
+precomp {
+    #arena->size: 0.05;
+}
+
+import {
+    "std/IO",
+    "std/strings"
+}
 
 func int main() {
-    return 0;
+    ccall function printf("%s", "Hello, world");
+    IO::ouc.printfln("%s", "Hello...");
 }
