@@ -46,15 +46,11 @@ func (t TokenType) isStmtCall() bool {
 }
 
 func (t TokenType) isExprCall() bool {
-    return t >= CALL && t <= FUNCCALL
+    return (t >= CALL && t <= FUNCCALL) || t == FUNC
 }
 
 func (t TokenType) isProperty() bool {
     return t >= GET && t <= SET
-}
-
-func (t TokenType) isMemManage() bool {
-    return t >= MEMORY && t <= SIZE
 }
 
 func (t TokenType) equals(Types ...TokenType) bool {
@@ -172,6 +168,7 @@ const (
     OR
     OPTIONAL
     PRECOMP
+    REFLEX
     RETURN
     SUPER
     STATIC
@@ -197,11 +194,12 @@ const (
     WRITE
     INCLUDE
     
-    //Memory allocation keywords
-    MEMORY
-    CLEAN
+    //Memory management keywords
+    HEAP
     FREE
-    SIZE
+    SIZEOF
+    LENOF
+    EMPTY
     
     //Precomp reserved words
     

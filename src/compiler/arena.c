@@ -6,8 +6,7 @@ typedef struct {
     char* m_curr;
     char* m_last;
     size_t m_size;
-    int m_ref_count;
-    char* m_track[];
+    size_t last;
 } t_Arena;
 
 t_Arena* new_arena(size_t p_size) {
@@ -18,7 +17,6 @@ t_Arena* new_arena(size_t p_size) {
     a->m_curr = a->m_top;
     a->m_last = a->m_top;
     a->m_size = p_size;
-    a->m_ref_count = 0;
     return a;
 }
 
@@ -30,8 +28,8 @@ void* arena_malloc(t_Arena* p_arena, size_t p_ref) {
     return alloc;
 }
 
-void* arena_keeps_track_of(t_Arena* p_arena) {
-    return p_arena->m_track[p_arena->m_ref_count];
+void reset_arena(t_Arena* p_arena) {
+    
 }
 
 void kill_arena(t_Arena* p_arena) {

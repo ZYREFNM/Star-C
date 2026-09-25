@@ -1,0 +1,16 @@
+module builtin/error;
+
+typedef void error {
+    func string err();
+}
+
+typedef struct Errors {
+    
+}
+func string Errors.err(): e {
+    
+}
+
+func Errors.new(err string): e {
+    e.err = err;
+}

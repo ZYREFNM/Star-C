@@ -119,21 +119,22 @@ func ignite(main string, extraSource []string) {
         var (
             scanner Scanner = Scanner{source: source, line: 1}
             tokens []Token = scanner.ScanTokens()
-            parser *Parser = &Parser{filepath: filesNames[i], tokens: tokens, current: 0, envi: InitEnvi()}
+            parser *Parser = &Parser{filepath: filesNames[i], tokens: tokens, current: 0, envi: NewEnvi()}
         )
     	parser.CompTime = NewPreCompiler(parser)
         CurrentParser = parser
     	nodes := parser.Parse()
         if parser.envi != nil {
-            supernova.ModulesPreCompiler[parser.Package] = parser.CompTime
-            for k, v := range parser.envi.Import {
+            supernova.ModulesPreCompiler[parser.Module] = parser.CompTime
+            for k, v := range parser.envi.ImportedModules {
                 if v {
                     file := k
+                    fmt.Println("f1", file)
                     if strings.HasSuffix(file, "/*\"") {
                         file = file[:len(file)-3] + "\""
-                        fmt.Println("f1", file)
+                        fmt.Println("f2", file)
                         dirs := DirFiles("./" + file[1:len(file)-1])
-                        fmt.Println(dirs)
+                        fmt.Println("Dirs", dirs)
                         for _, e := range dirs {
                             if strings.HasSuffix(e, ".starc") {
                                 fmt.Println("E", file[:len(file)-1] + "/" + e[:len(e)-6] + "\"")
@@ -154,18 +155,19 @@ func ignite(main string, extraSource []string) {
     PrintError()
     fmt.Println("Parsing imports")
     for _, file := range importedFiles {
-        fileName := file[1:len(file)-1]
+        fileName := file
         fmt.Println("FILE,,,", file, "./" + fileName + ".starc")
         filesNames = append(filesNames, fileName)
+        fmt.Println("Star-C imports:", "./" + fileName + ".starc")
         code := runFile("./" + fileName + ".starc")
         var (
             scanner Scanner = Scanner{source: code, line: 1}
             tokens []Token = scanner.ScanTokens()
-            parser *Parser = &Parser{tokens: tokens, filepath: "./" + fileName + ".starc", current: 0, envi: InitEnvi()}
+            parser *Parser = &Parser{tokens: tokens, filepath: fileName + ".starc", current: 0, envi: NewEnvi()}
         )
         parser.CompTime = NewPreCompiler(parser)
         ast := parser.Parse()
-        supernova.ModulesPreCompiler[parser.Package] = parser.CompTime
+        supernova.ModulesPreCompiler[parser.Module] = parser.CompTime
         envis = append(envis, parser.envi)
         parsedFiles = append(parsedFiles, ast)
     }
@@ -175,13 +177,13 @@ func ignite(main string, extraSource []string) {
     for i, _ := range parsedFiles {
         linker.Files = parsedFiles
         linker.FilesEnvi[filesNames[i]] = envis[i]
-        fmt.Println(filesNames[i], "->", parsedFiles[i])
+        fmt.Println(filesNames[i], "->", parsedFiles[i], "-->", envis[i])
         linker.Folder[filesNames[i]] = parsedFiles[i]
     }
     linker.Link()
     //fmt.Println("parsedFiles", parsedFiles)
     fmt.Println("Compiling")
-    fmt.Println("Compiling", linker.Folder)
+    fmt.Println("Compiling", linker.Folder, linker.ModuleChecker.ModuleTree)
     for module, ast := range linker.ModuleChecker.ModuleTree {
         fmt.Println("Code_gen", module)
         name := module.Name

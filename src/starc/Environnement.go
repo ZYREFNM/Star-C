@@ -1,251 +1,92 @@
 package main
 
 import (
-    "fmt"
 )
+type SymbolKind int
+type SymbolScope int
+
+const (
+    S_VARIABLE SymbolKind = iota
+    S_FUNC
+    S_CONST
+    S_TYPE
+)
+
+const (
+    S_PUB SymbolScope = iota
+    S_PROTECTED
+    S_PRIVATE
+    S_UNACESS
+)
+
+type CallInfo struct {
+    Module string
+    FilePath string
+    Envi *Environnement
+    Line int
+    Context *Node
+}
 
 type Environnement struct {
     Module string
-    ModulePath string
-    Name string
-    Import map[string]bool
-    Type map[string]string
-    Variable map[string]string
-    Const map[string]string
-    Pointer map[string]bool
-    Func map[string]string
-    Static map[string]bool
-    Public map[string]string
-    Protected map[string]string
-    Private map[string]*Environnement
-    Classes map[string]*Environnement
+    FilePath string
+    ImportedModules map[string]bool
+    Table map[string]*Symbol
     Parent *Environnement
-    Unknown *UnknownLocker
 }
 
-type UnknownLocker struct {
-    Type map[string]string
-    Func map[string]string
-    Variable map[string]string
-    Const map[string]string
-    Classes map[string]*Environnement
-    Pointer map[string]bool
-}
-
-func InitEnvi() *Environnement {
+func NewEnvi() *Environnement {
     return &Environnement{
-        Module: "main",
-        ModulePath: ".",
-        Name: "global",
-        Import: make(map[string]bool),
-        Type: make(map[string]string),
-        Variable: make(map[string]string),
-        Const: make(map[string]string),
-        Pointer: make(map[string]bool),
-        Func: make(map[string]string),
-        Static: make(map[string]bool),
-        Public: make(map[string]string),
-        Protected: make(map[string]string),
-        Private: make(map[string]*Environnement),
-        Classes: make(map[string]*Environnement),
-        Unknown: InitUnknownLocker(),
+        FilePath: ".",
+        ImportedModules: make(map[string]bool),
+        Table: make(map[string]*Symbol),
+        Parent: nil,
     }
-}
-
-func InitUnknownLocker() *UnknownLocker {
-    return &UnknownLocker{
-        Type: make(map[string]string),
-        Func: make(map[string]string),
-        Variable: make(map[string]string),
-        Const: make(map[string]string),
-        Classes: make(map[string]*Environnement),
-        Pointer: make(map[string]bool),
-    }
-}
-
-func (e *Environnement) NewUnknownLocker() *UnknownLocker {
-    return InitUnknownLocker()
 }
 
 func (e *Environnement) NewScope() *Environnement {
     return &Environnement{
-        Module: e.Module,
-        Import: make(map[string]bool),
-        Type: make(map[string]string),
-        Variable: make(map[string]string),
-        Const: make(map[string]string),
-        Pointer: make(map[string]bool),
-        Func: make(map[string]string),
-        Static: make(map[string]bool),
-        Classes: make(map[string]*Environnement),
-        Unknown: e.NewUnknownLocker(),
-        Public: make(map[string]string),
-        Protected: make(map[string]string),
-        Private: make(map[string]*Environnement),
+        Table: make(map[string]*Symbol),
         Parent: e,
     }
 }
 
-func (e *Environnement) Assimilate(envi *Environnement) {
-    for p, _ := range envi.Pointer {
-        e.Pointer[p] = true
-    }
-    for v, t := range envi.Variable {
-        e.Variable[v] = t
-    }
+type Symbol struct {
+    Name string
+    Kind SymbolKind
+    Module string
+    Type *NodeType
+    Params []Symbol
+    Fields []Symbol
+    Scope SymbolScope
+    Data []Symbol
+    Pointer bool
+    Static bool
+    CreatedAt *CallInfo
+    CallAt []CallInfo
 }
 
 func (e *Environnement) isGlobal() bool {
     return e.Parent == nil
 }
 
-func (e *Environnement) hasType(Type string) bool {
-    _, exist := e.Type[Type]
-    if !exist && e.Parent != nil {
-        return e.Parent.hasType(Type)
-    }
-    return exist
-}
-
-func (e *Environnement) hasVar(Var string) bool {
-    _, exist := e.Variable[Var]
-    if !exist && e.Parent != nil {
-        return e.Parent.hasVar(Var)
-    }
-    return exist
-}
-
-func (e *Environnement) hasConst(Const string) bool {
-    _, exist := e.Const[Const]
-    if !exist && e.Parent != nil {
-        return e.Parent.hasConst(Const)
-    }
-    return exist
-}
-
-func (e *Environnement) hasFunc(Func string) bool {
-    if _, exist := e.Func[Func]; exist {
-        return true
-    }
-    if e.Parent != nil {
-        return e.Parent.hasFunc(Func)
+func (e *Environnement) hasVar(mut string) bool {
+    for k, v := range e.Table {
+        if k == mut {
+            if v.Kind == S_VARIABLE {
+                return true
+            }
+        }
     }
     return false
 }
 
-func (e *Environnement) getInstanceType(instance string) string {
-    if e.Variable[instance] != "" {
-        return e.Variable[instance]
-    }
-    if e.Parent != nil {
-        return e.Parent.getInstanceType(instance)
-    }
-    return ""
-}
-
-func (e *Environnement) addStatic(Name string) {
-    if !e.isGlobal() {
-        e.Parent.addStatic(Name)
-    } else {
-        e.Static[Name] = true
-    }
-    return
-}
-
-func (e *Environnement) getStatic(Name string, ClassName string) bool {
-    fmt.Println("Searchin for static", Name, "in class", ClassName)
-    _, exist := e.Static[Name]
-    if exist {
-        fmt.Println("Found")
-        return true
-    }
-    if envi, ok := e.Classes[ClassName]; ok {
-        fmt.Println(fmt.Sprintf("Class %s found", ClassName))
-        return envi.getStatic(Name, ClassName)
-    }
-    if !e.Parent.isGlobal() {
-        return e.Parent.getStatic(Name, ClassName)
-    }
-    return false
-}
-
-func (e *Environnement) getPointer(Name string) bool {
-    if _, ok := e.Pointer[Name]; ok {
-        return true
-    }
-    if !e.isGlobal() {
-        return e.Parent.getPointer(Name)
-    }
-    return false
-}
-
-func (e *Environnement) SearchImport() []string {
-    var packs []string
-    if e.Import != nil {
-        for pack := range e.Import {
-            packs = append(packs, pack[1:len(pack)-1])
+func (e *Environnement) getStatics() []string {
+    var statics []string
+    for k, v := range e.Table {
+        if v.Kind == S_FUNC && v.Static {
+            statics = append(statics, k)
         }
     }
-    return packs
-}
-
-func (e *Environnement) SearchUnknownPack() []string {
-    var packs []string
-    if e.Unknown != nil {
-        if e.Unknown.Type != nil {
-            for _, v := range e.Unknown.Type {
-                fmt.Println("UNKNOWN TYPE", v)
-                packs = append(packs, v)
-            }
-        }
-        if e.Unknown.Func != nil {
-            for unknown := range e.Unknown.Func {
-                packs = append(packs, unknown)
-            }
-        }
-        if e.Unknown.Variable != nil {
-            for unknown := range e.Unknown.Variable {
-                packs = append(packs, unknown)
-            }
-        }
-        if e.Unknown.Const != nil {
-            for unknown := range e.Unknown.Const {
-                packs = append(packs, unknown)
-            }
-        }
-    }
-    return packs
-}
-
-func (e *Environnement) getUnsureFuncs() []string {
-    var unsure []string
-    if e.Unknown != nil {
-        if e.Unknown.Func != nil {
-            for Func := range e.Unknown.Func {
-                unsure = append(unsure, Func)
-            }
-        }
-    }
-    return unsure
-}
-
-func (e *Environnement) getProtected() []string {
-    var protectNames []string
-    if e.Protected != nil {
-        for protected := range e.Protected {
-            protectNames = append(protectNames, protected)
-        }
-        
-        if e.Classes != nil {
-            var classesProtected []string
-            for _, class := range e.Classes {
-                classesProtected = class.getProtected()
-            }
-            for _, protect := range classesProtected {
-                protectNames = append(protectNames, protect)
-            }
-        }
-        
-    }
-    return protectNames
+    return statics
 }

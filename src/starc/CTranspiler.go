@@ -35,6 +35,7 @@ type AOT_Optimizer struct {
 
 func (c *Compiler) WriteInFile(code string, format string) {
     codeBytes := []byte(code)
+    fmt.Println(c.fileName, "is your file")
     os.WriteFile(fmt.Sprintf("%s%s", c.fileName, format), codeBytes, 0644)
 }
 
@@ -68,7 +69,7 @@ func (c *Compiler) matchAction(Action string, Called []NodeExpr, CallerName stri
                 code += "#include " + c.TranslateC(called) + "\n"
             }
             return code
-        case "function":
+        case "func":
             var args []string
             for _, arg := range Called {
                 args = append(args, c.TranslateC(arg))
@@ -451,6 +452,9 @@ func (c *Compiler) TranslateC(node Node) string {
         	condition := c.TranslateC(n.Condition)
             result := c.TranslateC(n.Result)
             return fmt.Sprintf("while (%s) %s", condition, result)
+        
+        case *NodeStmtBreak:
+            return "break;"
             
         case *NodeStmtFuncInit:
         	var funcName string = n.Name
@@ -538,7 +542,6 @@ func (c *Compiler) TranslateC(node Node) string {
         	return fmt.Sprintf("%s_%s(%s%s%s)", class, n.Name, parPointer, multiargs, strings.Join(argsList, ", "))
         
         case *NodeExprGetter:
-            class := n.Class
             var varName string
             var varParam []string
             
@@ -554,11 +557,10 @@ func (c *Compiler) TranslateC(node Node) string {
                 }
             }
             if len(varParam) != 0 {parPointer += ", "}
-            return fmt.Sprintf("%s%s_get(&%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
+            return fmt.Sprintf("%s_get(&%s%s)", varName, parPointer, strings.Join(varParam, ", "))
             return ""
         
-        case *NodeExprSetter:
-            class := n.Class
+        case *NodeStmtSetter:
             var varName string
             var varParam []string
             
@@ -576,7 +578,7 @@ func (c *Compiler) TranslateC(node Node) string {
             if len(varParam) != 0 {
                 parPointer += ", "
             }
-            return fmt.Sprintf("%s%s_set(&%s%s)", class, varName, parPointer, strings.Join(varParam, ", "))
+            return fmt.Sprintf("%s_set(&%s%s)", varName, parPointer, strings.Join(varParam, ", "))
             return ""    
         
         case *NodeExprListIndex:

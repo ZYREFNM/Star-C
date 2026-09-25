@@ -129,6 +129,20 @@ func (n *NodeLiteral) Children() []Node {
 }
 
 
+type NodeStructLiteral struct {
+    Values []Node
+}
+func (n *NodeStructLiteral) isANode() {}
+func (n *NodeStructLiteral) isExpr() {}
+func (n *NodeStructLiteral) Children() []Node {
+    var child []Node
+    for _, c := range n.Values {
+        child = append(child, c)
+    }
+    return child
+}
+
+
 type NodeUnary struct {
     Operator string
     Right Node
@@ -356,6 +370,13 @@ func (n *NodeStmtWhile) Children() []Node {
 }
 
 
+type NodeStmtBreak struct {
+}
+func (n *NodeStmtBreak) isANode() {}
+func (n *NodeStmtBreak) isStmt() {}
+func (n *NodeStmtBreak) Children() []Node { return nil }
+
+
 type NodeStmtFuncInit struct {
     Return NodeExpr
     Name string
@@ -413,7 +434,6 @@ func (n *NodeExprMethodCall) Children() []Node {
 }
 
 type NodeExprGetter struct {
-    Class string
     Expr NodeExpr
     Vars map[string][]NodeExpr
     Indices []NodeExpr
@@ -435,15 +455,14 @@ func (n *NodeExprGetter) Children() []Node {
 }
 
 
-type NodeExprSetter struct {
-    Class string
+type NodeStmtSetter struct {
     Expr NodeExpr
     Vars map[string][]NodeExpr
     Indices []NodeExpr
 }
-func (n *NodeExprSetter) isANode() {}
-func (n *NodeExprSetter) isExpr() {}
-func (n *NodeExprSetter) Children() []Node {
+func (n *NodeStmtSetter) isANode() {}
+func (n *NodeStmtSetter) isStmt() {}
+func (n *NodeStmtSetter) Children() []Node {
     var child []Node
     child = append(child, n.Expr)
     for _, paramList := range n.Vars {

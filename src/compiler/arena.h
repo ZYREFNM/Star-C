@@ -2,6 +2,7 @@
 #define _STAR_C_ARENA_ALLOC
 
 #include <stddef.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -9,9 +10,11 @@ typedef struct {
     char* m_curr;
     size_t m_size;
     int m_ref_count;
+    size_t last;
 } t_Arena;
 
 t_Arena* new_arena(const size_t p_size);
 void* arena_malloc(t_Arena* p_arena, size_t p_size);
+void reset_arena(t_Arena* p_arena);
 void* kill_arena(t_Arena* p_arena);
 #endif

@@ -1,13 +1,34 @@
-precomp {
-    #arena->size: 0.05;
+import {
+    "std/File",
+    "std/IO",
+    "std/String",
+    "std/Math",
 }
 
-import {
-    "std/IO",
-    "std/strings"
+const string FILE = File::read("Starc.starc");
+
+var {
+    string p = "Player";
+    int32 num = Math::min(30, 31);
+    int num1 = Math::max(31, 32);
+}
+
+func void greet(string n) {
+    IO::printfln("hi");
 }
 
 func int main() {
-    ccall function printf("%s", "Hello, world");
-    IO::ouc.printfln("%s", "Hello...");
+    IO::printfln("%d", lenOf(p));
+    IO::printfln("%s", String::invert(p));
+    IO::printfln("%d", num);
+    IO::printfln("%d", num1);
+    IO::printfln("%d", Math::abs(-20));
+    
+    loop int i < [5] {
+        IO::printfln("Step %d", i);
+    }
+    loop [6] {
+        IO::printfln("%s", "loop of 6");
+    }
+    greet("Star-C");
 }

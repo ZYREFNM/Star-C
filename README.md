@@ -1,14 +1,14 @@
-# Star-Clang
+:# Star-Clang
 Star-C is a source-to-source compiled language written in go that uses a C backend.
 It uses a GCC implementation to run but that may changes to run with the Clang compiler (or both).
 
 - ## Philosophy
-    - ## Memory first
-        Star-C functionalities are build to let the user have access to flexible and powerfull memory management while keeping everything safe.
+    - ## Niche
+        Star-C is a system language, in the same niche as C, C++, Rust and Zig.
 
 - ## Integrations:
     - ### Memory:
-        Star-C manages memory using an Arena but also allows manual control.
+        Star-C manages memory using an Arena but also allows manual control. Star-C also have the SuperNova system, a precompiler letting the user interact with memory AOT.
 
 - ## Version
 	This project is actually instable and doesn't have realeses yet!
