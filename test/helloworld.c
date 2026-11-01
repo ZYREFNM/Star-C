@@ -11,12 +11,9 @@ t_Arena* __STAR_C_ARENA_ALLOCATOR__;
 int star_main() {
 	
 
-	string name = string_new("Ice");
+	int num = 32;
 
-	
-
-	int num = 16;
-
+	return num;
 return 0;
 }
 

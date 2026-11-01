@@ -132,7 +132,7 @@ func (s *Scanner) scanToken() {
     	case '-':
         	tokenType := MINUS;
             if s.match('>') {
-                tokenType = RIGHT_ARROW
+                tokenType = DASH_R_ARROW
             } else if s.match('=') {
                 tokenType = MINUS_EQUAL
             }
@@ -172,7 +172,7 @@ func (s *Scanner) scanToken() {
         	tokenType := EQUAL;
             if s.match('=') {
                 tokenType = EQUAL_EQUAL;
-            }
+            } else if s.match('>') { tokenType = FAT_R_ARROW }
         	s.addToken(tokenType); break;
 		case '<':
         	tokenType := LESS

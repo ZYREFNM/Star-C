@@ -190,7 +190,7 @@ type NodeStmtVar struct {
     Value Node
     Global bool
     Protected bool
-    Vars []NodeStmt
+    Vars []*NodeField
 }
 func (n *NodeStmtVar) isANode() {}
 func (n *NodeStmtVar) isStmt() {}
@@ -545,17 +545,28 @@ func (n *NodeScopeAcces) Children() []Node {
 type NodeStmtTypeDef struct {
     Type NodeExpr
     Name string
-    Vars []NodeStmt
+    Fields []*NodeField
 }
 func (n *NodeStmtTypeDef) isANode() {}
 func (n *NodeStmtTypeDef) isStmt() {}
 func (n *NodeStmtTypeDef) Children() []Node {
     var child []Node
-    for _, Var := range n.Vars {
-        child = append(child, Var)
+    for _, field := range n.Fields {
+        child = append(child, field)
     }
     return child
 }
+
+
+type NodeField struct {
+    Name string
+    Type NodeExpr
+}
+func (n *NodeField) isANode() {}
+func (n *NodeField) Children() []Node {
+    return []Node{n.Type}
+}
+
 
 // File's linking nodes
 

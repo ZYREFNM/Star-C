@@ -260,7 +260,7 @@ func (c *Compiler) TranslateH(node Node) string {
             var Type string = c.TranslateH(n.Type)
             if Type == "struct" || Type == "enum" {
                 code += " {\n"
-                for _, init := range n.Vars {
+                for _, init := range n.Fields {
                     lit := c.TranslateC(init)
                     if Type == "enum" {lit = lit[:len(lit)-1] + ","}
                     code += "    " + lit + "\n"
@@ -606,7 +606,7 @@ func (c *Compiler) TranslateC(node Node) string {
             var Type string = c.TranslateC(n.Type)
             if Type == "struct" || Type == "enum" {
                 code += " {\n"
-                for _, init := range n.Vars {
+                for _, init := range n.Fields {
                     lit := c.TranslateC(init)
                     if Type == "enum" {lit = lit[:len(lit)-1] + ","}
                     code += "    " + lit + "\n"

@@ -95,7 +95,7 @@ func (p *Parser) expect(err string, tok Token, expected ...TokenType) Token {
         }
     }
     CatchError(err)
-    return p.peek(0)
+    return p.advance()
 }
 
 func (p *Parser) parseType() NodeExpr {
@@ -128,32 +128,36 @@ func (p *Parser) parseType() NodeExpr {
     return nil
 }
 
-func (p *Parser) parseStruct() []NodeStmt {
-    var structVars []NodeStmt
+func (p *Parser) typeCheck() NodeExpr {
+    p.expect("Expected colon for type check", p.peek(0), COLON)
+    return p.parseType()
+}
+
+func (p *Parser) parseStruct() []*NodeField {
+    structFields := []*NodeField{}
     p.advance()
     parScope := p.envi 
     p.envi = p.envi.NewScope()
     for p.peek(0).tokenType != RIGHT_BRACE {
-        if !p.peek(0).tokenType.equals(PRIVATE, PUBLIC) {
-            structVars = append(structVars, p.parseVar())
-        } else {
-            structVars = append(structVars, p.scopeAccess())
-        }
-        if p.peek(0).tokenType.equals(SEMICOLON) {p.advance()}
+        name := p.peek(0).Lexeme
+        _Type := p.typeCheck()
+        
+        structFields = append(structFields, &NodeField{Name: name, Type: _Type})
+        p.expect("Expected semicolon after field decalration", p.peek(0), SEMICOLON)
     }
     p.envi = parScope
     p.advance()
-    return structVars
+    return structFields
 }
 
-func (p *Parser) parseEnum() []NodeStmt {
+func (p *Parser) parseEnum() []*NodeField {
     //fmt.Println("This case")
-    var enumVars []NodeStmt
+    var enumFields []*NodeField
     p.advance()
     parScope := p.envi
     p.envi = p.envi.NewScope()
     for p.peek(0).tokenType != RIGHT_BRACE {
-        enumVars = append(enumVars, &NodeStmtExpr{Expr: &NodeVariable{Name: p.advance().Lexeme}})
+        enumFields = append(enumFields, &NodeField{Name: p.peek(0).Lexeme, Type: &NodeType{Type: "int"}})
         p.envi.Table[p.peek(-1).Lexeme] = &Symbol{
             Name: p.peek(-1).Lexeme,
             Kind: S_CONST,
@@ -164,7 +168,7 @@ func (p *Parser) parseEnum() []NodeStmt {
     }
     p.envi = parScope
     p.advance()
-    return enumVars
+    return enumFields
 }
 
 func (p *Parser) primary() NodeExpr {
@@ -598,7 +602,7 @@ func (p *Parser) varAssignment(pass int, outProp map[string][]any) NodeStmt {
     var varVal NodeExpr = nil
     var varType NodeExpr
     var TypeTok Token
-    var Vars []NodeStmt
+    var Vars []*NodeField
     //var registeredType string
     var propertyList map[string][]any
     var isPointer bool = false
@@ -615,8 +619,6 @@ func (p *Parser) varAssignment(pass int, outProp map[string][]any) NodeStmt {
             p.advance()
             isPointer = true
         }
-        TypeTok = p.peek(0)
-        varType = p.parseType()
         //if Type, ok := varType.(*NodeType); ok {
         //    registeredType = Type.Type
         //    if registeredType == "[" {registeredType = "array"}
@@ -624,6 +626,9 @@ func (p *Parser) varAssignment(pass int, outProp map[string][]any) NodeStmt {
         
         if p.peek(0).tokenType != IDENTIFIER { CatchError("Expected an identifier for var found" + fmt.Sprintf("%v", TypeTok)); return nil}
         varName := p.advance().Lexeme
+        
+        TypeTok = p.peek(0)
+        varType = p.typeCheck()
         
         if p.peek(0).tokenType == EQUAL {
             p.advance()
@@ -934,38 +939,50 @@ func (p *Parser) parseParam() NodeStmt {
 
 func (p *Parser) funcInit() NodeStmt {
     var (
+        funcName string = ""
         paramList []NodeStmt = nil
         rType Token
         rName Token
         specialCases bool = false
         argsSymbol []Symbol
         typeIden *Symbol
+        returnType NodeExpr
     )
     if !p.isAtEnd() {
         p.advance()
         //Type := p.peek(0).Lexeme
-        returnType := p.parseType()
-        if p.peek(0).tokenType.equals(DOT) {
-            p.expect("Expected an identifier", p.peek(1), IDENTIFIER)
-            fmt.Println("Watch here lil stein", p.peek(1))
-            specialCases = true
-            rType = p.peek(-2)
+        hereAs := p.advance()
+        
+        if p.peek(0).tokenType.equals(FAT_R_ARROW) {
+            p.advance()
+            typeIden = &Symbol{
+                Name: hereAs.Lexeme,
+                Kind: S_VARIABLE,
+                Module: p.Module,
+                Pointer: true,
+            }
         }
-        if p.peek(0).tokenType != IDENTIFIER {CatchError("Expected identifier found " + p.peek(0).Lexeme); return nil}
-        funcName := p.advance().Lexeme
-        if !specialCases {
-            if p.peek(0).tokenType.equals(DOT) {p.advance(); rType = p.peek(-2); funcName = p.advance().Lexeme;}
+        if p.peek(1).tokenType.equals(DOT) {
+            rType = p.peek(0)
+            p.advance()
+            p.advance()
+            if p.peek(0).tokenType != IDENTIFIER {CatchError("Expected identifier found " + p.peek(0).Lexeme); return nil}
+            funcName = p.advance().Lexeme
+        } else {
+            funcName = hereAs.Lexeme
         }
-
-        if p.peek(1).tokenType != RIGHT_PAREN {
+        if MatchStr(funcName, "new", "op") { specialCases = true }
+        
+        p.expect("Expected left parenthesize", p.peek(0), LEFT_PAREN)
+        if p.peek(0).tokenType != RIGHT_PAREN {
             p.advance()
             for p.peek(0).tokenType != RIGHT_PAREN {
                 paramList = append(paramList, p.parseParam())
             }
-            p.advance()
-        } else {
-            p.advance()
-            p.advance()
+        }
+        p.advance()
+        if !specialCases {
+            returnType = p.typeCheck()
         }
         
         p.envi.Table[funcName] = &Symbol{
@@ -973,17 +990,6 @@ func (p *Parser) funcInit() NodeStmt {
             Kind: S_FUNC,
             Module: p.Module,
             Params: argsSymbol,
-        }
-        if p.peek(0).tokenType.equals(COLON) {
-            p.advance()
-            fmt.Println("Iden", p.peek(-1), p.peek(0), p.peek(1), p.peek(0).tokenType.equals(IDENTIFIER))
-            rName = p.expect("Expected identifier", p.peek(0), IDENTIFIER)
-            typeIden = &Symbol{
-                Name: rName.Lexeme,
-                Kind: S_VARIABLE,
-                Module: p.Module,
-                Pointer: true,
-            }
         }
         if p.peek(0).tokenType != LEFT_BRACE {CatchError("Missing left brace"); return nil}
         
@@ -1052,19 +1058,21 @@ func (p *Parser) parseScope(modifier Token) NodeStmt {
 func (p *Parser) typeDef() NodeStmt {
     if !p.isAtEnd() {
         p.advance()
-        Type := p.peek(0)
-        typeData := p.parseType()
+        
         var typeName string = p.advance().Lexeme
-        var typeVars []NodeStmt = nil
+        typeFields := []*NodeField{}
+        
+        typeData := p.typeCheck()
+        Type := p.peek(0)
         fmt.Println(Type, "type's type", Type.tokenType == STRUCT_TYPE)
         if Type.tokenType.equals(STRUCT_TYPE) {
-            typeVars = p.parseStruct()
+            typeFields = p.parseStruct()
         } else if Type.tokenType.equals(ENUM_TYPE) {
-            typeVars = p.parseEnum()
+            typeFields = p.parseEnum()
         } else {
             if !Type.tokenType.equals(SEMICOLON) { CatchError("Missing Semicolon") }
         }
-        return &NodeStmtTypeDef{Type: typeData, Name: typeName, Vars: typeVars}
+        return &NodeStmtTypeDef{Type: typeData, Name: typeName, Fields: typeFields}
     }
     CatchError("Invalid typedef, not ended correctly before EOF")
     return nil
