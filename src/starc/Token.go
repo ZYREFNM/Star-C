@@ -46,7 +46,7 @@ func (t TokenType) isStmtCall() bool {
 }
 
 func (t TokenType) isExprCall() bool {
-    return (t >= CALL && t <= FUNCCALL) || t == FUNC
+    return (t >= CALL && t <= FUNCCALL) || t == FUN
 }
 
 func (t TokenType) isProperty() bool {
@@ -78,6 +78,7 @@ const (
     SLASH
     STAR
     HASHTAG
+    AT_SIGN
     
     //One or more char tokens
     BANG
@@ -96,6 +97,7 @@ const (
     CONCAT
     VAR_ARGS
     TYPE_CONV
+    CHAINED_LINK
     SCOPE_RESOLVE
     
     //Literals
@@ -155,7 +157,7 @@ const (
     ELSE
     EXTENDS
     FALSE
-    FUNC
+    FUN
     FOR
     GOTO
     IF
@@ -168,7 +170,6 @@ const (
     OR
     OPTIONAL
     PRECOMP
-    REFLEX
     RETURN
     SUPER
     STATIC

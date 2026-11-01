@@ -8,7 +8,6 @@ type ErrorHandler struct {
     CurrentParser *Parser
 }
 
-type StarError struct {
-    ErrorLine int
-    Name string
+func (e *ErrorHandler) LinkParser(p *Parser) {
+    e.CurrentParser = p
 }

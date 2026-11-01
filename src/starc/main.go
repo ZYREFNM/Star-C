@@ -28,7 +28,7 @@ func main() {
     fmt.Println(fmt.Sprintf("\n%s %s %s: %s", "Star-C", VERSION_STATE, "version", VERSION))
     if len(os.Args) >= 5 {
         filePath = os.Args[3]
-        if !strings.HasSuffix(filePath, ".starc") {
+        if !IsSCFile(filePath) {
             CatchError("Try to run a .starc file")
         }
         if os.Args[4] != "orbit" || len(os.Args) < 5 {CatchError("Expected orbit or commets")}
@@ -39,27 +39,26 @@ func main() {
         subFiles = append(subFiles, "std/Math.starc", "std/IO.starc", "std/Vector.starc")
         runCommand(filePath, subFiles)
     }else if len(os.Args) == 2{
-        fmt.Println("Updated")
     }else if len(os.Args) == 4 {
         filePath = os.Args[3]
         filePath = os.Args[len(os.Args)-1]
         if !strings.HasSuffix(filePath, ".starc") {
             CatchError("Try to run a .starc file")
         }
-        //subFiles = append(subFiles, "std/Math.starc", "std/IO.starc", "std/Vector.starc")
         PrintError()
         runCommand(filePath, subFiles)
     }
     os.Exit(0);
 }
 
+func IsSCFile(file string) bool {
+    return strings.HasSuffix(file, ".starc")
+}
+
 func CatchError(output string) {
     err := errors.New(output);
     ErrorCatcher.Errors = append(ErrorCatcher.Errors, err)
-    if CurrentParser == nil {
-        return
-    }
-    ErrorCatcher.CurrentParser = CurrentParser
+    if CurrentParser == nil { return }
     ErrorCatcher.Name = ErrorCatcher.CurrentParser.filepath
     ErrorCatcher.ErrorLine = append(ErrorCatcher.ErrorLine, ErrorCatcher.CurrentParser.peek(0).Line)
 }
@@ -76,7 +75,6 @@ func PrintError() {
         if !HasCompileError {strLine = ""}
         fmt.Printf("%sError%s occured%s in %s: %s\n", Red, Reset, strLine, absPath, err)
     }
-    fmt.Println("Arrivé à là")
     os.Exit(1)
 }
 
@@ -90,9 +88,7 @@ func runFile(path string) string {
 }
 
 func ignite(main string, extraSource []string) {
-    //extra := len(extraSource) < 0;
     for _, sub := range subFiles {
-        //fmt.Println("Sub is", sub)
         subNames = append(subNames, filepath.Base(sub)[:len(filepath.Base(sub))-6])
     }
     var (
@@ -123,29 +119,18 @@ func ignite(main string, extraSource []string) {
         )
     	parser.CompTime = NewPreCompiler(parser)
         CurrentParser = parser
+        ErrorCatcher.LinkParser(CurrentParser)
     	nodes := parser.Parse()
         if parser.envi != nil {
             supernova.ModulesPreCompiler[parser.Module] = parser.CompTime
-            for k, v := range parser.envi.ImportedModules {
-                if v {
-                    file := k
-                    fmt.Println("f1", file)
-                    if strings.HasSuffix(file, "/*\"") {
-                        file = file[:len(file)-3] + "\""
-                        fmt.Println("f2", file)
-                        dirs := DirFiles("./" + file[1:len(file)-1])
-                        fmt.Println("Dirs", dirs)
-                        for _, e := range dirs {
-                            if strings.HasSuffix(e, ".starc") {
-                                fmt.Println("E", file[:len(file)-1] + "/" + e[:len(e)-6] + "\"")
-                                importedFiles = append(importedFiles, file[:len(file)-1] + "/" + e[:len(e)-6] + "\"")
-                            }
-                        }
-                    } else {
-                        fmt.Println("Just", file)
-                        importedFiles = append(importedFiles, file)
-                    }
-                    fmt.Println("K:", file)
+            for module, present := range parser.envi.ImportedModules {
+                if !present { continue }
+                if !strings.HasSuffix(module, "/*\"") { importedFiles = append(importedFiles, module); continue }
+                file := module[:len(module)-3] + "\""
+                dirs := DirFiles("./" + file[1:len(file)-1])
+                for _, element := range dirs {
+                    if !IsSCFile(element) { continue }
+                    importedFiles = append(importedFiles, file[:len(file)-1] + "/" + element[:len(element)-6] + "\"")
                 }
             }
         }
@@ -153,12 +138,9 @@ func ignite(main string, extraSource []string) {
         parsedFiles = append(parsedFiles, nodes)
     }
     PrintError()
-    fmt.Println("Parsing imports")
     for _, file := range importedFiles {
         fileName := file
-        fmt.Println("FILE,,,", file, "./" + fileName + ".starc")
         filesNames = append(filesNames, fileName)
-        fmt.Println("Star-C imports:", "./" + fileName + ".starc")
         code := runFile("./" + fileName + ".starc")
         var (
             scanner Scanner = Scanner{source: code, line: 1}
@@ -166,6 +148,7 @@ func ignite(main string, extraSource []string) {
             parser *Parser = &Parser{tokens: tokens, filepath: fileName + ".starc", current: 0, envi: NewEnvi()}
         )
         parser.CompTime = NewPreCompiler(parser)
+        ErrorCatcher.LinkParser(parser)
         ast := parser.Parse()
         supernova.ModulesPreCompiler[parser.Module] = parser.CompTime
         envis = append(envis, parser.envi)
@@ -173,7 +156,6 @@ func ignite(main string, extraSource []string) {
     }
     PrintError()
     linker := NewLinker()
-    fmt.Println("Linking")
     for i, _ := range parsedFiles {
         linker.Files = parsedFiles
         linker.FilesEnvi[filesNames[i]] = envis[i]
@@ -181,22 +163,15 @@ func ignite(main string, extraSource []string) {
         linker.Folder[filesNames[i]] = parsedFiles[i]
     }
     linker.Link()
-    //fmt.Println("parsedFiles", parsedFiles)
-    fmt.Println("Compiling")
-    fmt.Println("Compiling", linker.Folder, linker.ModuleChecker.ModuleTree)
     for module, ast := range linker.ModuleChecker.ModuleTree {
-        fmt.Println("Code_gen", module)
         name := module.Name
         isMain := false
         if name == filePath[:len(filePath)-6] {isMain = true}
-        //fmt.Println("Name:: ", name)
         var compiler Compiler = Compiler{fileName: name, OtherModule: false, isMain: isMain, Nova: supernova,}
         compiler.GenerateCCode(ast)
-        //fmt.Println("Aide moi", compiler.fileName, name)
     }
     PrintError()
     var args []string
-    fmt.Println("GEN NAMES", filesNames)
     for _, genName := range filesNames {
     	args = append(args, genName + ".c")
     }
@@ -230,13 +205,11 @@ func runCommand(arg string, subArgs []string) {
         }
     }
     PrintError()
-    //fmt.Println("Dans commande, les subs sont", len(subArgs), len(subSource))
     switch command {
-        case "ignite": mainFile = filepath.Base(filePath)[:len(filepath.Base(filePath))-6]; ignite(runFile(filePath), subSource); break;
-        case "launch": launch(input, subFiles); break;
+        case "ignite": mainFile = filepath.Base(filePath)[:len(filepath.Base(filePath))-6]; ignite(runFile(filePath), subSource)
+        case "launch": launch(input, subFiles)
         case "version": fmt.Println(fmt.Sprintf("%s %v", "Star-C version", VERSION))
         default:
-        	fmt.Println(command)
         	CatchError("Try to run command like this 'starc [flag] <input>'");
     }
     PrintError()

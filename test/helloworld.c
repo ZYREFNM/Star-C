@@ -9,7 +9,14 @@ t_Arena* __STAR_C_ARENA_ALLOCATOR__;
 
 
 int star_main() {
-	printf(string_new("Hello World\n").lit);
+	
+
+	string name = string_new("Ice");
+
+	
+
+	int num = 16;
+
 return 0;
 }
 

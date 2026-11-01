@@ -49,14 +49,11 @@ func (p *Parser) ParseStmt() NodeStmt {
         case LOOP: return p.loop()
         case WHILE: return p.whileStmt()
         case BREAK: return p.breakStmt()
-        case FUNC: return p.funcInit()
+        case FUN: return p.funcInit()
         case TYPEDEF: return p.typeDef()
         case CCALL:
-            if !p.peek(1).tokenType.isStmtCall() {break}
-            fmt.Println(Red, "Calling a stmt", Reset)
-            return p.ccall()
-        case REFLEX:
-            p.CompTime.ParsePreCompile()
+        case PRECOMP:
+            p.CompTime.PreCompile(p.peek(0))
             return nil
         case SET: return p.PropertyAccessorStmt()
         case PRIVATE, PUBLIC: return p.scopeAccess()
@@ -363,31 +360,22 @@ func (p *Parser) primary() NodeExpr {
         }
     }
     
+    //C-caller as expression
     if token.tokenType.equals(CCALL) {
-        fmt.Println(Red, "Calling an expr", Reset)
-        var callerName string
-        var called []NodeExpr
-        if !p.peek(0).tokenType.isExprCall() {fmt.Println(p.peek(0)); CatchError("Expected action for the C-Expr-Caller found " + p.peek(0).Lexeme); return nil}
-        actionName := p.advance().Lexeme
-        fmt.Println("Call is", actionName)
-        switch actionName {
-            case "call":
-            case "func":
-                if p.peek(0).tokenType != IDENTIFIER {CatchError("Expected Identifier"); return nil}
-                callerName = p.advance().Lexeme
-                //fmt.Println("Caller", callerName)
-                if p.peek(0).tokenType != LEFT_PAREN {CatchError("Expected left parenthesize for C function call"); return nil}
-                p.advance()
-                for p.peek(0).tokenType != RIGHT_PAREN {
-                    called = append(called, p.expression())
-                    if p.peek(0).tokenType == COMMA {p.advance()}
-                }
-                p.advance()
-            default:
-            break
+        args := []NodeExpr{}
+        
+        if !p.peek(0).tokenType.equals(DOT) { return nil }
+        p.advance()
+        
+        caller := p.expect("Expected identifier for C.caller", p.peek(0), IDENTIFIER).Lexeme
+        
+        p.expect("Expected left parenthesize", p.peek(0), LEFT_PAREN)
+        for !p.peek(0).tokenType.equals(RIGHT_PAREN) {
+            args = append(args, p.expression())
+            if p.peek(0).tokenType.equals(COMMA) { p.advance() }
         }
-        //fmt.Println("Token actuel", p.peek(0))
-        return &NodeExprC{Action: actionName, Called: called, CallerName: callerName}
+        
+        return &NodeExprC{Caller: caller, Args: args}
     }
     
     if token.tokenType == NULL {
@@ -634,7 +622,7 @@ func (p *Parser) varAssignment(pass int, outProp map[string][]any) NodeStmt {
         //    if registeredType == "[" {registeredType = "array"}
         //}
         
-        if p.peek(0).tokenType != IDENTIFIER { CatchError("Expected an identifier for function name"); return nil}
+        if p.peek(0).tokenType != IDENTIFIER { CatchError("Expected an identifier for var found" + fmt.Sprintf("%v", TypeTok)); return nil}
         varName := p.advance().Lexeme
         
         if p.peek(0).tokenType == EQUAL {
@@ -959,6 +947,7 @@ func (p *Parser) funcInit() NodeStmt {
         returnType := p.parseType()
         if p.peek(0).tokenType.equals(DOT) {
             p.expect("Expected an identifier", p.peek(1), IDENTIFIER)
+            fmt.Println("Watch here lil stein", p.peek(1))
             specialCases = true
             rType = p.peek(-2)
         }

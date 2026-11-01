@@ -29,6 +29,7 @@ type Module struct {
     Envi *Environnement
     Ast []Node
     SubModules []Module
+    ExternCalls *Environnement
 }
 
 type SemanticAnalyser struct {
@@ -130,7 +131,7 @@ func (l *Linker) linkPointer() {
         fmt.Println(Red, "Get ast: ", Reset, ast)
         for index, node := range ast {
             fmt.Println(Red, "Node&.co", Reset, node, index, mod)
-            l.pointSymbol(node, mod, index)
+            //l.pointSymbol(node, mod, index)
         }
     }
 }
@@ -227,7 +228,7 @@ func (l *Linker) Link() {
     l.addComplementModules()
     l.ModuleChecker.fuseModule()
     l.ModuleChecker.checkModule()
-    l.linkNodes()
+    //l.linkNodes()
 }
 
 func (l *Linker) GetLink() [][]Node {

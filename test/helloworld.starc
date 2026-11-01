@@ -1,8 +1,16 @@
 module helloworld;
 
-func s
+typedef User: struct {
+    name: string;
+    age: int;
+}
 
-func int main() {
-    ccall func printf("Hello World\n");
-    return 0;
+fun u => User.greet(): void {
+    @C.printf("Hi, my name is %s and I'm %d, nice to meet you!", u.name, u.age);
+}
+
+fun main(): int {
+    pub var user: User;
+    user.name = "Ice";
+    user.greet();
 }

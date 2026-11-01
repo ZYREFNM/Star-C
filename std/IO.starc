@@ -1,17 +1,11 @@
-module std/IO;
+module std::IO;
 
-import {
-    "std/strings"
+fun printf(fmt: string, replaceable: string): void {
+    @C.printf(fmt, replaceable);
 }
 
-func void printf(string fmt, string text) {
-    var string to_string = "";
-    if (strings::contains(fmt, "%s")) {
-        to_string = to_string << text;
-    }
-    ccall function printf(fmt.lit, to_string.lit);
+/--[
+fun printf(fmt: string, replaceables: #data{raw}...): void {
+    @C.printf(fmt, )
 }
-
-static func void printfln(string fmt, string text) {
-    IO::printf(fmt << "\n", text);
-}
+]--/

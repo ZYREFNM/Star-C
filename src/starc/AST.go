@@ -15,6 +15,10 @@ type NodeExpr interface {
     isExpr()
 }
 
+type NodeProg struct {
+    Stmts []Node
+}
+
 type NodeStmtExpr struct {
     Expr NodeExpr
 }
@@ -274,16 +278,15 @@ func (n *NodeStmtC) Children() []Node {
 
 
 type NodeExprC struct {
-    Action string
-    Called []NodeExpr
-    CallerName string
+    Caller string
+    Args []NodeExpr
 }
 func (n *NodeExprC) isANode() {}
 func (n *NodeExprC) isExpr() {}
 func (n *NodeExprC) Children() []Node {
     var child []Node
-    for _, call := range n.Called {
-        child = append(child, call)
+    for _, arg := range n.Args {
+        child = append(child, arg)
     }
     return child
 }
@@ -382,7 +385,6 @@ type NodeStmtFuncInit struct {
     Name string
     Param []NodeStmt
     Code NodeStmt
-    Protected bool
     ReceiverType Token
     ReceiverName Token
 }

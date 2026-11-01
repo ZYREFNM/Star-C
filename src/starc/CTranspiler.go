@@ -419,7 +419,11 @@ func (c *Compiler) TranslateC(node Node) string {
             return c.matchAction(n.Action, n.Called, n.CallerName) + ";"
         
         case *NodeExprC:
-            return c.matchAction(n.Action, n.Called, n.CallerName)
+        ArgsAsString := ""
+        for _, arg := range n.Args {
+            ArgsAsString += fmt.Sprintf("%v", arg)
+        }
+            return fmt.Sprintf("%s(%s)", n.Caller, ArgsAsString)
         
         case *NodeStmtIf:
         	condition := c.TranslateC(n.Condition)
@@ -614,23 +618,18 @@ func (c *Compiler) TranslateC(node Node) string {
             return ""
         case *NodeStmtModule:
             c.Module = filepath.Base(n.Name)
-            fmt.Println(Red, "Module de salope", Reset, filepath.Base(n.Name), c.Module)
             return ""
         
         case *NodeImport:
             var Modules []string
             for _, module := range n.Names {
-                fmt.Println(module, module[len(module)-5:len(module)], "MODULE", module[len(module)-5:len(module)] == "/*.h\"")
                 if strings.HasSuffix(module, "/*.h\"") {
                     module = strings.TrimPrefix(module, "\".")
                     dir := module[:len(module)-5]
-                    fmt.Println("Yes", dir)
                     files := DirFiles(dir)
                     for _, file := range files {
                         file = "\"" + module[:len(module)-4] + file[1:len(file)-1] + "\""
-                        fmt.Println("TES FICHIERS", file)
                         if !strings.HasSuffix(file, ".starc") {continue}
-                        fmt.Println("TES FICHIERS APRÈS", file)
                         Modules = append(Modules, strings.TrimSuffix(file, ".starc"))
                     }
                 } else {fmt.Println("Non"); Modules = append(Modules, module)}
@@ -638,7 +637,6 @@ func (c *Compiler) TranslateC(node Node) string {
             var importCode string
             for _, module := range Modules {
                 importCode = "#include " + module + "\n"
-                fmt.Println("Your pack", module)
             }
             c.importField += importCode
             return ""

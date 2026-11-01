@@ -56,7 +56,7 @@ var keywords = map[string]TokenType{
     "define":DEFINE,
     "else":ELSE,
     "false":FALSE,
-    "func":FUNC,
+    "fun":FUN,
     "for":FOR,
     "free": FREE,
     "get":GET,
@@ -123,7 +123,7 @@ func (s *Scanner) scanToken() {
     	case '.':
             tokenType := DOT
             if s.match('.') {
-                tokenType = TYPE_CONV
+                tokenType = CHAINED_LINK
                 if s.match('.') {
                     tokenType = VAR_ARGS
                 }
@@ -145,6 +145,10 @@ func (s *Scanner) scanToken() {
         	s.addToken(tokenType); break;
     	case ';': s.addToken(SEMICOLON); break;
         case '#': s.addToken(HASHTAG)
+        case '@':
+            tokenType := AT_SIGN
+            if s.match('C') { tokenType = CCALL }
+            s.addToken(tokenType)
     	case ':':
             tokenType := COLON
             if s.match(':') {
